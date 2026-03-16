@@ -1,255 +1,207 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, BookOpen, UserCheck, TrendingUp, BarChart3, PlusCircle, Zap, Mail, Bell, AlertTriangle } from 'lucide-react';
+import { Search, Bell, Moon, Sun } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
-    const { feedbacks, availableCourses, availableInstructors, currentUser, createForm } = useApp();
+    const { forms, feedbacks, currentUser, courses, darkMode, toggleDarkMode } = useApp();
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const [campaignTitle, setCampaignTitle] = useState('');
-    const [campaignDeadline, setCampaignDeadline] = useState('');
-    const [posting, setPosting] = useState(false);
+    const adminName = currentUser?.name || 'Admin';
 
-    // Standard feedback questions included in every campaign
-    const defaultFields = [
+    // Stat calculations
+    const totalForms = forms.length;
+    const activeForms = forms.filter(f => {
+        if (!f.deadline) return f.published;
+        return f.published && new Date(f.deadline) >= new Date();
+    }).length;
+    const totalResponses = feedbacks.length;
+
+    const getAvgRating = () => {
+        const valid = feedbacks.filter(f => f.rating && !isNaN(Number(f.rating)));
+        if (valid.length === 0) return 0;
+        return (valid.reduce((a, b) => a + Number(b.rating), 0) / valid.length).toFixed(1);
+    };
+    const avgRating = getAvgRating();
+
+    const statCards = [
         {
-            id: 'dq-1',
-            label: 'How would you rate the overall quality of the course?',
-            type: 'rating',
-            options: ['Poor', 'Average', 'Good', 'Excellent'],
-            required: true,
+            label: 'Total Forms',
+            value: totalForms,
+            sub: '+3 vs last month',
+            subColor: '#22c55e',
+            icon: '📋',
+            iconBg: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+            topBorder: '#3b82f6',
         },
         {
-            id: 'dq-2',
-            label: 'Was the course content clear and easy to understand?',
-            type: 'rating',
-            options: ['Confusing', 'Neutral', 'Clear', 'Very clear'],
-            required: true,
+            label: 'Active Forms',
+            value: activeForms,
+            sub: `+${activeForms} currently live`,
+            subColor: '#22c55e',
+            icon: '✅',
+            iconBg: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
+            topBorder: '#22c55e',
         },
         {
-            id: 'dq-3',
-            label: 'How effective was the instructor in explaining the topics?',
-            type: 'rating',
-            options: ['Needs improvement', 'Average', 'Effective', 'Very effective'],
-            required: true,
+            label: 'Total Responses',
+            value: totalResponses,
+            sub: '+12% response rate',
+            subColor: '#f59e0b',
+            icon: '💬',
+            iconBg: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+            topBorder: '#f59e0b',
         },
         {
-            id: 'dq-4',
-            label: 'Did this course improve your knowledge or skills in the subject?',
-            type: 'rating',
-            options: ['No', 'Neutral', 'Yes, somewhat', 'Yes, significantly'],
-            required: true,
-        },
-        {
-            id: 'dq-5',
-            label: 'Overall performance of instructor?',
-            type: 'rating',
-            options: ['Poor', 'Average', 'Good', 'Excellent'],
-            required: true,
+            label: 'Avg. Rating / 5',
+            value: avgRating,
+            sub: '▲ High satisfaction',
+            subColor: '#a855f7',
+            icon: '⭐',
+            iconBg: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
+            topBorder: '#a855f7',
         },
     ];
 
-    const handleCreateCampaign = (e) => {
-        e.preventDefault();
-        if (!campaignTitle) return;
-        setPosting(true);
+    // Recent forms
+    const recentForms = forms.slice(0, 6);
 
-        createForm({
-            title: campaignTitle,
-            deadline: campaignDeadline,
-            published: true,
-            fields: [...defaultFields]
-        });
+    // ── Courses Overview: derived from context ──────────────────────────────
+    const coursesList = courses.slice(0, 5);
 
-        setTimeout(() => {
-            setPosting(false);
-            setCampaignTitle('');
-            setCampaignDeadline('');
-        }, 1000);
+
+    const getFormType = (form) => form.type || (() => {
+        const t = (form.title || '').toLowerCase();
+        if (t.includes('institution') || t.includes('service')) return 'Institution';
+        return 'Course';
+    })();
+
+    const getFormStatus = (form) => {
+        if (!form.published) return 'Draft';
+        if (form.deadline && new Date(form.deadline) < new Date()) return 'Expired';
+        return 'Active';
     };
 
-    const getAverage = (feedbackArray) => {
-        const validFeedbacks = feedbackArray.filter(f => f.rating && !isNaN(Number(f.rating)));
-        if (validFeedbacks.length === 0) return '0';
-        return (validFeedbacks.reduce((acc, curr) => acc + Number(curr.rating), 0) / validFeedbacks.length).toFixed(1);
-    };
-
-    const stats = [
-        { label: 'Total Feedbacks', value: feedbacks.length, icon: <Users size={22} />, color: '#22d3a5', bg: 'rgba(34,211,165,0.15)' },
-        { label: 'Courses Tracked', value: availableCourses.length, icon: <BookOpen size={22} />, color: '#7c6cf5', bg: 'rgba(124,108,245,0.15)' },
-        { label: 'Instructors', value: availableInstructors.length, icon: <UserCheck size={22} />, color: '#60a5fa', bg: 'rgba(96,165,250,0.15)' },
-        { label: 'Avg Satisfaction', value: feedbacks.length > 0 ? getAverage(feedbacks) : '0', icon: <TrendingUp size={22} />, color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
-    ];
-
-    const getCourseStats = (course) => {
-        const courseFeedbacks = feedbacks.filter(f => f.course === course);
-        return { avg: getAverage(courseFeedbacks), count: courseFeedbacks.length };
-    };
+    const getResponseCount = (form) => feedbacks.filter(f => f.formId === form.id).length;
 
     return (
-        <div>
-            {/* Header */}
-            <div className="dashboard-header">
-                <div>
-                    <h1 className="page-title animate-fade-in">Admin Dashboard</h1>
-                    <p className="page-subtitle animate-fade-in animate-delay-1" style={{ marginBottom: 0 }}>
-                        Welcome back, <span style={{ color: 'var(--accent-secondary)', fontWeight: 700 }}>{currentUser?.name || 'Admin'}</span>! Monitor real-time student feedback.
-                    </p>
+        <div className="admin-ov-root animate-fade-in">
+            <div className="admin-ov-topbar">
+                <div className="admin-ov-topbar-left">
+                    <div className="admin-ov-breadcrumb">Overview</div>
+                    <div className="admin-ov-tagline">Welcome back, {adminName}</div>
                 </div>
-                <div className="animate-fade-in animate-delay-2">
-                    <button className="btn-primary" style={{ padding: '0.6rem 1.1rem', fontSize: '0.88rem' }} onClick={() => navigate('/admin/analysis')}>
-                        <BarChart3 size={16} /> Data Analytics
+                <div className="admin-ov-topbar-right">
+                    <div className="admin-ov-search-wrap">
+                        <Search size={15} className="admin-ov-search-icon" />
+                        <input
+                            className="admin-ov-search"
+                            type="text"
+                            placeholder="Search forms, courses..."
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                    <button className="admin-ov-icon-btn"><Bell size={18} /></button>
+                    <button className="admin-ov-icon-btn" onClick={toggleDarkMode}>
+                        {darkMode ? <Sun size={18} /> : <Moon size={18} />}
                     </button>
                 </div>
             </div>
 
+            {/* Welcome heading */}
+            <div className="admin-ov-welcome">
+                <h1 className="admin-ov-welcome-title">Welcome back, {adminName}! 👋</h1>
+                <p className="admin-ov-welcome-sub">Here's what's happening with your feedback system today.</p>
+            </div>
+
             {/* Stat Cards */}
-            <div className="grid-2 animate-fade-in" style={{ gridTemplateColumns: '1.2fr 0.8fr', gap: '1.50rem', marginBottom: '2.5rem' }}>
-                {/* Statistics Grid */}
-                <div className="grid-2" style={{ gap: '1rem' }}>
-                    {stats.map((s, i) => (
-                        <div key={i} className="glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.15rem', animationDelay: `${i * 0.08}s` }}>
-                            <div className="stat-icon" style={{ background: s.bg, width: 40, height: 40, flexShrink: 0 }}><span style={{ color: s.color }}>{s.icon}</span></div>
-                            <div>
-                                <div style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', marginBottom: '0.1rem' }}>{s.label}</div>
-                                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
+            <div className="admin-ov-stats-row">
+                {statCards.map((s, i) => (
+                    <div key={i} className="admin-ov-stat-card" style={{ borderTop: `3px solid ${s.topBorder}` }}>
+                        <div className="admin-ov-stat-icon" style={{ background: s.iconBg }}>
+                            <span style={{ fontSize: '1.3rem' }}>{s.icon}</span>
+                        </div>
+                        <div className="admin-ov-stat-body">
+                            <div className="admin-ov-stat-value">{s.value}</div>
+                            <div className="admin-ov-stat-label">{s.label}</div>
+                            <div className="admin-ov-stat-sub" style={{ color: s.subColor }}>
+                                ↑ {s.sub}
                             </div>
                         </div>
-                    ))}
-                </div>
+                    </div>
+                ))}
+            </div>
 
-                {/* Launch Feedback Widget */}
-                <div className="glass-panel" style={{ border: '1px solid var(--accent-primary)', background: 'rgba(249,115,22,0.03)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                            <PlusCircle size={18} />
+            {/* Two-column: Recent Forms + Courses Overview */}
+            <div className="admin-ov-grid">
+
+                {/* ── Recent Forms ─────────────────────────────── */}
+                <div className="admin-ov-panel">
+                    <div className="admin-ov-panel-header">
+                        <div>
+                            <div className="admin-ov-panel-title">Recent Forms</div>
+                            <div className="admin-ov-panel-sub">Latest feedback forms created</div>
                         </div>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Launch Feedback</h3>
+                        <button className="admin-ov-view-all-btn" onClick={() => navigate('/admin/forms')}>
+                            View All
+                        </button>
                     </div>
 
-                    <form onSubmit={handleCreateCampaign} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div>
-                                <label className="form-label" style={{ fontSize: '0.75rem' }}>Feedback Title</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    placeholder="e.g. End-Semester Feedback"
-                                    value={campaignTitle}
-                                    onChange={e => setCampaignTitle(e.target.value)}
-                                    style={{ padding: '0.6rem' }}
-                                />
+                    <div className="admin-ov-forms-list">
+                        {recentForms.length === 0 && (
+                            <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem 0', fontSize: '0.9rem' }}>
+                                No forms yet. Create one to get started.
                             </div>
-                            <div>
-                                <label className="form-label" style={{ fontSize: '0.75rem' }}>Submission Deadline</label>
-                                <input
-                                    type="date"
-                                    className="form-input"
-                                    value={campaignDeadline}
-                                    onChange={e => setCampaignDeadline(e.target.value)}
-                                    style={{ padding: '0.6rem' }}
-                                />
-                            </div>
-                        </div>
-                        <button type="submit" className="btn-primary" style={{ width: '100%', padding: '0.7rem', fontSize: '0.85rem' }} disabled={posting || !campaignTitle}>
-                            {posting ? 'Launching...' : 'Launch Feedback'}
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            {/* Course Ratings List */}
-            <div className="glass-panel animate-fade-in animate-delay-2">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h2 style={{ fontSize: '1.05rem', fontWeight: 700 }}>📊 Course Rating Overview</h2>
-                </div>
-
-                <div style={{ overflowX: 'auto' }}>
-                    <table className="data-table" style={{ width: '100%' }}>
-                        <thead>
-                            <tr>
-                                <th>Course Name</th>
-                                <th style={{ textAlign: 'center' }}>Avg Rating</th>
-                                <th style={{ textAlign: 'center' }}>Submissions</th>
-                                <th>Quality Status</th>
-                                <th>Trend</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {availableCourses.map((course) => {
-                                const { avg, count } = getCourseStats(course);
-                                return (
-                                    <tr key={course}>
-                                        <td>
-                                            <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{course}</div>
-                                            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Core Curriculum</div>
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-secondary)' }}>{avg} / 4</div>
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <div style={{
-                                                display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
-                                                background: 'rgba(34,211,165,0.1)', border: '1px solid rgba(34,211,165,0.25)',
-                                                borderRadius: 10, padding: '0.25rem 0.75rem', minWidth: 60,
-                                            }}>
-                                                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#22d3a5', lineHeight: 1 }}>{count}</span>
-                                                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>students</span>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${parseFloat(avg) >= 3 ? 'badge-success' : parseFloat(avg) >= 2 ? 'badge-warning' : 'badge-danger'}`}>
-                                                {parseFloat(avg) >= 3.5 ? 'Excellent' : parseFloat(avg) >= 3 ? 'Good' : parseFloat(avg) >= 2 ? 'Average' : count === 0 ? 'No Data' : 'Poor'}
+                        )}
+                        {recentForms.map(form => {
+                            const type = getFormType(form);
+                            const status = getFormStatus(form);
+                            const count = getResponseCount(form);
+                            return (
+                                <div key={form.id} className="admin-ov-form-row">
+                                    <div className="admin-ov-form-info">
+                                        <div className="admin-ov-form-title">{form.title}</div>
+                                        <div className="admin-ov-form-meta">
+                                            <span className={`admin-ov-tag ${type === 'Institution' ? 'tag-institution' : 'tag-course'}`}>
+                                                {type}
                                             </span>
-                                        </td>
-                                        <td>
-                                            <button className="btn-ghost" style={{ padding: '0.4rem 0.7rem', fontSize: '0.78rem' }} onClick={() => navigate('/admin/analysis')}>
-                                                <BarChart3 size={13} /> Details
-                                            </button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                            <span className="admin-ov-resp-count">{count} responses</span>
+                                        </div>
+                                    </div>
+                                    <span className={`admin-ov-status-badge ${status === 'Active' ? 'status-active' :
+                                        status === 'Expired' ? 'status-expired' : 'status-draft'
+                                        }`}>
+                                        • {status}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
 
-            {/* Upcoming Features Section */}
-            <div className="glass-panel animate-fade-in animate-delay-2" style={{ marginTop: '2.5rem' }}>
-                <h2 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1.5rem' }}>🚀 Upcoming Features</h2>
-                <div className="grid-2" style={{ gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
-                    {[
-                        {
-                            title: 'Instant Message Alerts',
-                            icon: <Bell size={20} />,
-                            desc: 'Get instant alerts the moment students share their feedback.',
-                            color: 'var(--accent-primary)'
-                        },
-                        {
-                            title: 'Announcement Portal',
-                            icon: <Mail size={20} />,
-                            desc: 'Send quick updates or reminders to all your students in one click.',
-                            color: '#7c6cf5'
-                        }
-                    ].map((feature, idx) => (
-                        <div key={idx} style={{ padding: '1.5rem', borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                            <div style={{ width: 45, height: 45, borderRadius: 12, background: feature.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: `0 8px 20px -5px ${feature.color}66`, flexShrink: 0 }}>
-                                {feature.icon}
+                {/* ── Courses Overview ──────────────────────────── */}
+                <div className="admin-ov-panel">
+                    <div className="admin-ov-panel-header">
+                        <div className="admin-ov-panel-title">🎓 Courses Overview</div>
+                        <button className="admin-ov-view-all-text" onClick={() => navigate('/admin/courses')}>
+                            View All
+                        </button>
+                    </div>
+
+                    <div className="admin-ov-courses-list">
+                        {coursesList.map((course, i) => (
+                            <div key={i} className="admin-ov-course-row">
+                                <div>
+                                    <div className="admin-ov-course-name">{course.name}</div>
+                                    <div className="admin-ov-course-code">{course.code}</div>
+                                </div>
                             </div>
-                            <div>
-                                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0', color: feature.color }}>{feature.title}</h3>
-                                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.4 }}>{feature.desc}</p>
-                            </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
-            </div>
 
-            {/* Privacy notice */}
-            <div className="alert alert-info animate-fade-in animate-delay-3" style={{ marginTop: '1.5rem' }}>
-                🔒 <strong>Privacy Notice:</strong> Student names and personal details are not stored. You can only see submission counts per form.
             </div>
         </div>
     );

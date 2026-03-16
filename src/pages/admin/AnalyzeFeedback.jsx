@@ -1,8 +1,12 @@
-import { Users, TrendingUp, ClipboardList, ShieldCheck, BarChart3, Download } from 'lucide-react';
+import { Users, TrendingUp, ClipboardList, ShieldCheck, BarChart3, Download, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useLocation } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
 
 const AnalyzeFeedback = () => {
-    const { feedbacks, availableCourses, availableInstructors } = useApp();
+    const { feedbacks: allFeedbacks, availableCourses, availableInstructors } = useApp();
+    const location = useLocation();
+    const [filterCourse, setFilterCourse] = useState(null);
 
     const getAverage = (feedbackArray) => {
         const validFeedbacks = feedbackArray.filter(f => f.rating && !isNaN(Number(f.rating)));
@@ -10,12 +14,28 @@ const AnalyzeFeedback = () => {
         return (validFeedbacks.reduce((acc, curr) => acc + Number(curr.rating), 0) / validFeedbacks.length).toFixed(1);
     };
 
+    const getStatsBy = (key, value) => {
+        const filtered = feedbacks.filter(f => f[key] === value);
+        return { avg: getAverage(filtered), count: filtered.length };
+    };
+
+    useEffect(() => {
+        if (location.state && location.state.filterCourse) {
+            setFilterCourse(location.state.filterCourse);
+        }
+    }, [location.state]);
+
+    const feedbacks = filterCourse
+        ? allFeedbacks.filter(f => f.course === filterCourse)
+        : allFeedbacks;
+
+
     const downloadCSV = () => {
         if (feedbacks.length === 0) return alert('No feedback data available to export.');
 
         // Get all unique keys from feedback objects (including dynamic fields)
         const headers = ['id', 'course', 'instructor', 'rating', 'remarks', 'timestamp'];
-        
+
         // Add headers for dynamic ratings if they exist
         const dynamicKeys = new Set();
         feedbacks.forEach(f => {
@@ -55,17 +75,27 @@ const AnalyzeFeedback = () => {
         document.body.removeChild(link);
     };
 
+    const topCourse = useMemo(() => {
+        if (feedbacks.length === 0) return '—';
+        const courseAvgs = availableCourses.map(c => ({ name: c, ...getStatsBy('course', c) }));
+        const sorted = courseAvgs.sort((a, b) => parseFloat(b.avg) - parseFloat(a.avg));
+        return sorted[0].avg !== '0' ? sorted[0].name : '—';
+    }, [feedbacks, availableCourses]);
+
+    const topInstructor = useMemo(() => {
+        if (feedbacks.length === 0) return '—';
+        const insAvgs = availableInstructors.map(i => ({ name: i, ...getStatsBy('instructor', i) }));
+        const sorted = insAvgs.sort((a, b) => parseFloat(b.avg) - parseFloat(a.avg));
+        return sorted[0].avg !== '0' ? sorted[0].name : '—';
+    }, [feedbacks, availableInstructors]);
+
     const stats = [
         { label: 'Total Feedbacks', value: feedbacks.length, icon: <Users size={22} />, color: '#22d3a5', bg: 'rgba(34,211,165,0.15)' },
         { label: 'Avg Rating', value: feedbacks.length > 0 ? getAverage(feedbacks) : '—', icon: <TrendingUp size={22} />, color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
-        { label: 'Top Course', value: 'FSAD', icon: <ClipboardList size={22} />, color: '#7c6cf5', bg: 'rgba(124,108,245,0.15)' },
-        { label: 'Top Instructor', value: 'Ramu', icon: <ShieldCheck size={22} />, color: '#60a5fa', bg: 'rgba(96,165,250,0.15)' },
+        { label: 'Top Course', value: topCourse, icon: <ClipboardList size={22} />, color: '#7c6cf5', bg: 'rgba(124,108,245,0.15)' },
+        { label: 'Top Instructor', value: topInstructor, icon: <ShieldCheck size={22} />, color: '#60a5fa', bg: 'rgba(96,165,250,0.15)' },
     ];
 
-    const getStatsBy = (key, value) => {
-        const filtered = feedbacks.filter(f => f[key] === value);
-        return { avg: getAverage(filtered), count: filtered.length };
-    };
 
     return (
         <div>
@@ -74,17 +104,54 @@ const AnalyzeFeedback = () => {
                 <div>
                     <h1 className="page-title animate-fade-in">Feedback Analytics</h1>
                     <p className="page-subtitle animate-fade-in animate-delay-1" style={{ marginBottom: 0 }}>
-                        In-depth analysis of student ratings and remarks.
+                        In-depth analysis of student ratings and descriptive remarks across courses and instructors.
                     </p>
                 </div>
-                <button 
+                <button
                     onClick={downloadCSV}
-                    className="btn-primary animate-fade-in animate-delay-2" 
+                    className="btn-primary animate-fade-in animate-delay-2"
                     style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', fontSize: '0.85rem' }}
                 >
                     <Download size={16} /> Download CSV
                 </button>
             </div>
+
+            {/* Filter Indicator */}
+            {filterCourse && (
+                <div className="filter-badge animate-fade-in" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    background: 'rgba(124, 108, 245, 0.1)',
+                    border: '1px solid rgba(124, 108, 245, 0.2)',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '20px',
+                    width: 'fit-content',
+                    marginBottom: '1.5rem',
+                    color: 'var(--accent-primary)',
+                    fontSize: '0.85rem',
+                    fontWeight: 600
+                }}>
+                    <span>Filtering by: {filterCourse}</span>
+                    <button
+                        onClick={() => setFilterCourse(null)}
+                        style={{
+                            background: 'rgba(124, 108, 245, 0.2)',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '20px',
+                            height: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: 'var(--accent-primary)'
+                        }}
+                    >
+                        <X size={12} strokeWidth={3} />
+                    </button>
+                </div>
+            )}
 
             {/* Summary cards */}
             <div className="grid-auto animate-fade-in" style={{ marginBottom: '2.5rem' }}>
@@ -150,20 +217,48 @@ const AnalyzeFeedback = () => {
                 </div>
             </div>
 
-            {/* Recent Remarks */}
-            <div className="glass-panel animate-fade-in animate-delay-2">
-                <h3 style={{ fontWeight: 700, marginBottom: '1.25rem' }}>💬 Recent Student Remarks</h3>
-                {feedbacks.filter(f => f.remarks).length === 0 ? (
-                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No written remarks yet.</div>
+            {/* Recent Submissions */}
+            <div className="glass-panel animate-fade-in animate-delay-2" style={{ marginBottom: '1.5rem' }}>
+                <h3 style={{ fontWeight: 700, marginBottom: '1.25rem' }}>📋 Recent Feedback Submissions</h3>
+                {feedbacks.length === 0 ? (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No feedback submissions yet.</div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {feedbacks.filter(f => f.remarks).slice(0, 5).map(f => (
-                            <div key={f.id} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid var(--glass-border)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.75rem' }}>
+                        {feedbacks.slice(0, 5).map(f => (
+                            <div key={f.id} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <div style={{ color: 'var(--accent-primary)', fontWeight: 700, fontSize: '0.85rem' }}>{f.course} — {f.instructor}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{new Date(f.timestamp).toLocaleString()}</div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ fontWeight: 800, color: 'var(--accent-secondary)' }}>{f.rating}</span>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>/ 4</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Student Remarks */}
+            <div className="glass-panel animate-fade-in animate-delay-3">
+                <h3 style={{ fontWeight: 700, marginBottom: '1.25rem' }}>💬 Student Remarks & Suggestions</h3>
+                {feedbacks.filter(f => f.remarks && f.remarks.trim()).length === 0 ? (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No written remarks submitted yet.</div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {feedbacks.filter(f => f.remarks && f.remarks.trim()).slice(0, 8).map(f => (
+                            <div key={f.id} style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '1px solid var(--glass-border)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.75rem' }}>
                                     <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{f.course} — {f.instructor}</span>
                                     <span style={{ color: 'var(--text-muted)' }}>{new Date(f.timestamp).toLocaleDateString()}</span>
                                 </div>
-                                <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>"{f.remarks}"</p>
+                                <div style={{ position: 'relative', paddingLeft: '1.5rem' }}>
+                                    <span style={{ position: 'absolute', left: 0, top: -5, fontSize: '1.5rem', color: 'var(--accent-secondary)', opacity: 0.4 }}>"</span>
+                                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, fontStyle: 'italic' }}>
+                                        {f.remarks}
+                                    </p>
+                                </div>
                             </div>
                         ))}
                     </div>

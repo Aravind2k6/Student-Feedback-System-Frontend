@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { ClipboardList, CheckCircle2, AlertCircle, Send, Award, Clock, Bell, Trash2, X } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { ClipboardList, CheckCircle, AlertCircle, Send, Award, Clock, Bell, Trash2, X, Moon, Sun } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const RatingWidget = ({ value, onChange, options }) => {
@@ -44,9 +44,10 @@ const RatingWidget = ({ value, onChange, options }) => {
 const StudentDashboard = () => {
     const {
         publishedForms, submitForm, currentUser, hasStudentSubmitted,
-        availableCourses, courseInstructors, availableInstructors,
+        courses, releasedCourses, courseInstructors, availableInstructors, availableCourses,
         feedbacks,
-        notifications, markAllRead, clearNotifications
+        notifications, markAllRead, clearNotifications,
+        darkMode, toggleDarkMode
     } = useApp();
     const student = (currentUser && currentUser.name) ? currentUser : { name: 'Student', id: 'STU-DEMO', dept: 'Computer Science', semester: '6th Semester' };
 
@@ -61,12 +62,31 @@ const StudentDashboard = () => {
     const [error, setError] = useState('');
     const [showNotifications, setShowNotifications] = useState(false);
 
+    const resetForm = () => {
+        setSelectedCampaign(null);
+        setSelectedCourse('');
+        setSelectedInstructor('');
+        setRating(0);
+        setDynamicRatings({});
+        setRemarks('');
+        setError('');
+        setSubmitted(false);
+    };
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const isCourseReleased = (form) => {
+        if (form.type !== 'Course') return true;
+        const targetCourse = form.course || 
+                            courses.find(c => c.name === form.target || c.courseName === form.target)?.name;
+        if (!targetCourse) return true;
+        return releasedCourses.includes(targetCourse);
+    };
+
     const activeForms = useMemo(() =>
-        publishedForms.filter(f => !f.deadline || new Date(f.deadline) >= today),
-        [publishedForms]
+        publishedForms.filter(f => isCourseReleased(f) && (!f.deadline || new Date(f.deadline) >= today)),
+        [publishedForms, releasedCourses, courses]
     );
 
     // Alert logic for deadlines within next 48 hours
@@ -83,8 +103,8 @@ const StudentDashboard = () => {
     const unreadCount = notifications.filter(n => !n.read).length;
 
     const expiredForms = useMemo(() =>
-        publishedForms.filter(f => f.deadline && new Date(f.deadline) < today),
-        [publishedForms]
+        publishedForms.filter(f => isCourseReleased(f) && (f.deadline && new Date(f.deadline) < today)),
+        [publishedForms, releasedCourses, courses]
     );
     const currentForms = feedbackTab === 'active' ? activeForms : expiredForms;
 
@@ -97,10 +117,37 @@ const StudentDashboard = () => {
         return submissionKey ? hasStudentSubmitted(submissionKey) : false;
     }, [submissionKey, hasStudentSubmitted]);
 
+    const isCourseLocked = useMemo(() => {
+        if (!selectedCampaign) return false;
+        const targetCourse = selectedCampaign.course || 
+                             courses.find(c => c.name === selectedCampaign.target || c.courseName === selectedCampaign.target)?.name;
+        return !!targetCourse && releasedCourses.includes(targetCourse);
+    }, [selectedCampaign, courses, releasedCourses]);
+
     const instructors = useMemo(() => {
         if (!selectedCourse) return [];
         return courseInstructors[selectedCourse] || [];
     }, [selectedCourse, courseInstructors]);
+
+    // Auto-select course if specified in campaign
+    useEffect(() => {
+        if (selectedCampaign) {
+            const targetCourse = selectedCampaign.course || 
+                                 courses.find(c => c.name === selectedCampaign.target || c.courseName === selectedCampaign.target)?.name;
+            
+            if (targetCourse && releasedCourses.includes(targetCourse)) {
+                setSelectedCourse(targetCourse);
+            }
+        }
+    }, [selectedCampaign, courses, releasedCourses]);
+
+    // Auto-select instructor if only one is available
+    useEffect(() => {
+        if (selectedCourse && instructors.length === 1) {
+            setSelectedInstructor(instructors[0]);
+        }
+    }, [selectedCourse, instructors]);
+
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -122,11 +169,16 @@ const StudentDashboard = () => {
             return;
         }
 
+        // Find overall rating field to map to primary rating
+        const overallField = dynamicFields.find(f => f.label.toLowerCase().includes('overall'));
+        const overallRating = overallField ? dynamicRatings[overallField.id] : (rating || 0);
+
         // Submit using the unique key and pass data for Admin to see
         submitForm(submissionKey, {
+            formId: selectedCampaign.id,
             course: selectedCourse,
             instructor: selectedInstructor,
-            rating: rating || (dynamicFields.length > 0 ? Object.values(dynamicRatings)[0] : 0),
+            rating: overallRating,
             dynamicRatings,
             remarks
         });
@@ -157,7 +209,7 @@ const StudentDashboard = () => {
     };
 
     return (
-        <div>
+        <div className="content-wrapper animate-fade-in">
             {/* Header */}
             <div className="dashboard-header" style={{ position: 'relative', zIndex: 50 }}>
                 <div>
@@ -167,11 +219,10 @@ const StudentDashboard = () => {
                     </p>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }} className="animate-fade-in animate-delay-2">
-                    <div style={{ position: 'relative' }}>
+                <div className="dashboard-toolbar animate-fade-in animate-delay-2">
+                    <div className="dashboard-toolbar-controls" style={{ position: 'relative' }}>
                         <button
-                            className="btn-ghost"
-                            style={{ padding: '0.6rem', background: 'rgba(255,255,255,0.05)', borderRadius: 12 }}
+                            className="dashboard-icon-btn"
                             onClick={() => {
                                 setShowNotifications(!showNotifications);
                                 if (!showNotifications) markAllRead();
@@ -189,6 +240,13 @@ const StudentDashboard = () => {
                                     {unreadCount}
                                 </span>
                             )}
+                        </button>
+                        <button
+                            className="dashboard-icon-btn"
+                            onClick={toggleDarkMode}
+                            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                        >
+                            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
                         </button>
 
                         {/* Notifications Tray */}
@@ -213,7 +271,7 @@ const StudentDashboard = () => {
                                         notifications.map(n => (
                                             <div key={n.id} style={{
                                                 padding: '0.85rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.03)',
-                                                background: n.read ? 'transparent' : 'rgba(124,108,245,0.05)',
+                                                background: n.read ? 'transparent' : 'rgba(79,70,229,0.05)',
                                                 display: 'flex', flexDirection: 'column', gap: '0.25rem'
                                             }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -242,7 +300,7 @@ const StudentDashboard = () => {
                         )}
                     </div>
 
-                    <div className="badge badge-purple" style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }}>
+                    <div className="dashboard-status-chip">
                         <Award size={14} /> {student.semester}
                     </div>
                 </div>
@@ -411,7 +469,7 @@ const StudentDashboard = () => {
                                         <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Providing feedback for this requirement.</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setSelectedCampaign(null)} className="btn-ghost" style={{ fontSize: '0.8rem' }}>
+                                <button onClick={resetForm} className="btn-ghost" style={{ fontSize: '0.8rem' }}>
                                     Switch Feedback
                                 </button>
                             </div>
@@ -419,20 +477,29 @@ const StudentDashboard = () => {
                             {submitted ? (
                                 <div className="animate-scale-in" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
                                     <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(34,211,165,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', color: '#22d3a5' }}>
-                                        <CheckCircle2 size={36} />
+                                        <CheckCircle size={36} />
                                     </div>
                                     <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.5rem' }}>Feedback Submitted!</h3>
                                     <p style={{ color: 'var(--text-secondary)' }}>Thank you for helping us improve our quality.</p>
+                                    <button onClick={resetForm} className="btn-primary" style={{ marginTop: '1.5rem', marginInline: 'auto' }}>
+                                        Done
+                                    </button>
                                 </div>
                             ) : (
                                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem' }}>
                                     <div className="grid-2" style={{ gap: '1.1rem' }}>
                                         <div>
                                             <label className="form-label">Select Course</label>
-                                            <select className="form-input" value={selectedCourse} onChange={e => { setSelectedCourse(e.target.value); setSelectedInstructor(''); }}>
-                                                <option value="">Choose Course…</option>
-                                                {availableCourses.map(c => <option key={c} value={c}>{c}</option>)}
-                                            </select>
+                                            {isCourseLocked ? (
+                                                <div className="form-input" style={{ background: 'rgba(255,255,255,0.03)', color: 'var(--accent-secondary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <CheckCircle size={16} /> {selectedCourse}
+                                                </div>
+                                            ) : (
+                                                <select className="form-input" value={selectedCourse} onChange={e => { setSelectedCourse(e.target.value); setSelectedInstructor(''); }}>
+                                                    <option value="">Choose Course…</option>
+                                                    {releasedCourses.map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                            )}
                                         </div>
                                         <div>
                                             <label className="form-label">Select Instructor</label>
@@ -441,6 +508,7 @@ const StudentDashboard = () => {
                                                 {instructors.map(ins => <option key={ins} value={ins}>{ins}</option>)}
                                             </select>
                                         </div>
+
                                     </div>
 
                                     {isAlreadySubmitted ? (
@@ -458,7 +526,7 @@ const StudentDashboard = () => {
                                             {selectedCampaign.fields && selectedCampaign.fields.length > 0 ? (
                                                 selectedCampaign.fields.map(field => {
                                                     // Skip "Full Name", "Student ID", "Email", "Department" as they come from profile
-                                                    const profileFields = ['full name', 'student id', 'email', 'email address', 'department', 'course', 'instructor name'];
+                                                    const profileFields = ['full name', 'student id', 'email', 'email address', 'department', 'course', 'course code', 'instructor name'];
                                                     if (profileFields.includes(field.label.toLowerCase())) return null;
 
                                                     return (
@@ -538,11 +606,15 @@ const StudentDashboard = () => {
                                                 </div>
                                             )}
 
-                                            <div>
-                                                <label className="form-label">Additional Remarks / Suggestions</label>
-                                                <textarea className="form-input" style={{ minHeight: 100 }}
-                                                    placeholder="Share your experience or suggestions for improvement..."
-                                                    value={remarks} onChange={e => setRemarks(e.target.value)} />
+                                            <div className="form-group" style={{ marginTop: '1.5rem' }}>
+                                                <label className="form-label" style={{ marginBottom: '0.85rem' }}>Additional Remarks (Optional)</label>
+                                                <textarea
+                                                    className="form-input"
+                                                    style={{ minHeight: 100 }}
+                                                    placeholder="Share any additional thoughts or suggestions..."
+                                                    value={remarks}
+                                                    onChange={(e) => setRemarks(e.target.value)}
+                                                />
                                             </div>
 
                                             {error && (

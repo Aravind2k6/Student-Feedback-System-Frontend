@@ -28,7 +28,7 @@ const mkField = (type) => ({
     label: '',
     required: false,
     placeholder: '',
-    options: type === 'select' ? ['Option 1', 'Option 2', 'Option 3'] : undefined,
+    options: ['select', 'rating'].includes(type) ? ['Option 1', 'Option 2', 'Option 3', 'Option 4'] : undefined,
 });
 
 /* ── Field row component ── */
@@ -67,8 +67,8 @@ const FieldRow = ({ field, index, onChange, onRemove }) => {
                     />
                 )}
 
-                {/* Options (for select) */}
-                {field.type === 'select' && (
+                {/* Options (for select and rating) */}
+                {['select', 'rating'].includes(field.type) && (
                     <div style={{ marginTop: '0.5rem' }}>
                         {(field.options || []).map((opt, i) => (
                             <div key={i} style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem' }}>
@@ -112,19 +112,14 @@ const CreateForm = () => {
     const [success, setSuccess] = useState(false);
 
     const [meta, setMeta] = useState({
-        title: '', description: '', courseCode: '', department: '', deadline: '',
+        title: '', description: '', courseCode: '', course: '', deadline: '',
     });
     const [fields, setFields] = useState([
-        { ...mkField('text'), label: 'Full Name', required: true, placeholder: 'Enter your full name' },
-        { ...mkField('text'), label: 'Student ID', required: true, placeholder: 'e.g. STU-2024-042' },
-        { ...mkField('text'), label: 'Course', required: true, placeholder: 'e.g. Machine Learning' },
-        { ...mkField('text'), label: 'Instructor name', required: true, placeholder: 'e.g. Dr. Smith' },
-        { ...mkField('select'), label: 'Department', required: true, options: ['Computer Science', 'Information Technology', 'Electronics', 'Mechanical', 'Civil'] },
-        { ...mkField('rating'), label: 'How would you rate the overall quality of the course?', required: true, options: ['Poor', 'Average', 'Good', 'Excellent'] },
-        { ...mkField('rating'), label: 'Was the course content clear and easy to understand?', required: true, options: ['Confusing', 'Neutral', 'Clear', 'Very clear'] },
-        { ...mkField('rating'), label: 'How effective was the instructor in explaining the topics?', required: true, options: ['Needs improvement', 'Average', 'Effective', 'Very effective'] },
-        { ...mkField('rating'), label: 'Did this course improve your knowledge or skills in the subject?', required: true, options: ['No', 'Neutral', 'Yes, somewhat', 'Yes, significantly'] },
-        { ...mkField('rating'), label: 'Overall performance of instructor?', required: true, options: ['Poor', 'Average', 'Good', 'Excellent'] },
+        { ...mkField('rating'), label: '1. How well did the instructor explain the subject concepts?', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
+        { ...mkField('rating'), label: '2. How clear were the lecture presentations?', required: true, options: ['Very Clear', 'Clear', 'Somewhat Clear', 'Not Clear'] },
+        { ...mkField('rating'), label: '3. How useful were the study materials provided for the subject?', required: true, options: ['Very Useful', 'Useful', 'Slightly Useful', 'Not Useful'] },
+        { ...mkField('rating'), label: '4. How effectively were doubts and questions addressed during the class?', required: true, options: ['Very Effectively', 'Effectively', 'Moderately', 'Not Effectively'] },
+        { ...mkField('rating'), label: '5. Overall, how would you rate this subject?', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
     ]);
 
     const addField = (type) => setFields(prev => [...prev, mkField(type)]);
@@ -193,13 +188,13 @@ const CreateForm = () => {
                             <div className="grid-2" style={{ gap: '0.85rem' }}>
                                 <div className="form-group">
                                     <label className="form-label">Course Code</label>
-                                    <input type="text" className="form-input" placeholder="CS401"
+                                    <input type="text" className="form-input" placeholder="24SDC02E"
                                         value={meta.courseCode} onChange={e => setMeta({ ...meta, courseCode: e.target.value })} />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Department</label>
-                                    <input type="text" className="form-input" placeholder="Computer Science"
-                                        value={meta.department} onChange={e => setMeta({ ...meta, department: e.target.value })} />
+                                    <label className="form-label">Course</label>
+                                    <input type="text" className="form-input" placeholder="FSAD"
+                                        value={meta.course} onChange={e => setMeta({ ...meta, course: e.target.value })} />
                                 </div>
                             </div>
                             <div className="form-group">

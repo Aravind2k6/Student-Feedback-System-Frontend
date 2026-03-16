@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import DynamicBackground from '../components/DynamicBackground';
 import {
     BookOpen, MessageSquare, BarChart3, ShieldCheck, Users, TrendingUp,
-    Star, ArrowRight, CheckCircle, Zap, Bell, ChevronRight, Mail,
-    Phone, MapPin, Github, Twitter, Linkedin, Menu, X
+    ArrowRight, CheckCircle, Zap, Bell, ChevronRight, Github, Twitter,
+    Linkedin, Menu, X
 } from 'lucide-react';
 
 /* ── Navbar ──────────────────────────────────────────── */
@@ -27,45 +28,40 @@ const Navbar = () => {
         <>
             <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
                 <div className="navbar-inner">
-                    {/* Logo */}
-                    <div className="navbar-logo">
-                        <div className="navbar-logo-icon">
-                            <BookOpen size={18} color="#000d1a" strokeWidth={2.5} />
+                    <div className="navbar-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer', gap: '0.8rem' }}>
+                        <div className="landing-brand-icon">
+                            <BookOpen size={18} color="#0d1627" strokeWidth={2.5} />
                         </div>
-                        <span>EduFeedback</span>
+                        <span className="landing-brand-text" style={{ color: '#f8fafc' }}>EduFeedback</span>
                     </div>
 
-                    {/* Links */}
                     <div className="navbar-links">
-                        {['home', 'features', 'about', 'contact'].map(id => (
-                            <a key={id} className="navbar-link" onClick={() => scrollTo(id)} style={{ cursor: 'pointer', textTransform: 'capitalize' }}>
-                                {id}
-                            </a>
-                        ))}
+                        <span className="navbar-link" style={{ color: 'rgba(245, 247, 251, 0.95)' }} onClick={() => scrollTo('home')}>Home</span>
+                        <span className="navbar-link" style={{ color: 'rgba(245, 247, 251, 0.95)' }} onClick={() => scrollTo('features')}>Features</span>
+                        <span className="navbar-link" style={{ color: 'rgba(245, 247, 251, 0.95)' }} onClick={() => scrollTo('about')}>About</span>
+                        <span className="navbar-link" style={{ color: 'rgba(245, 247, 251, 0.95)' }} onClick={() => scrollTo('contact')}>Contact</span>
                     </div>
 
-                    {/* Actions */}
                     <div className="navbar-actions">
-                        <button className="btn-ghost" style={{ padding: '0.5rem 1rem', fontSize: '0.88rem' }} onClick={() => navigate('/login')}>
+                        <button className="landing-login-btn" onClick={() => navigate('/login')}>
                             Login
                         </button>
-                        <button className="btn-primary" style={{ padding: '0.5rem 1.1rem', fontSize: '0.88rem' }} onClick={() => navigate('/login')}>
-                            Get Started <ArrowRight size={15} />
+                        <button className="btn-primary landing-cta-btn" onClick={() => navigate('/login')}>
+                            Get Started <ArrowRight size={17} />
                         </button>
-                        <button className="mobile-menu-btn" onClick={() => setMenuOpen(!menuOpen)}>
-                            {menuOpen ? <X size={22} color="var(--text-primary)" /> : <Menu size={22} color="var(--text-secondary)" />}
+                        <button
+                            className="mobile-menu-btn"
+                            onClick={() => setMenuOpen((open) => !open)}
+                            aria-label="Toggle navigation menu"
+                        >
+                            {menuOpen ? <X size={20} color="#ffffff" /> : <Menu size={20} color="#ffffff" />}
                         </button>
                     </div>
                 </div>
             </nav>
 
-            {/* Mobile Menu */}
             {menuOpen && (
-                <div className="animate-fade" style={{
-                    position: 'fixed', top: 'var(--navbar-height)', left: 0, right: 0,
-                    background: 'rgba(7,13,26,0.98)', backdropFilter: 'blur(20px)',
-                    zIndex: 999, padding: '1.5rem 2rem', borderBottom: '1px solid var(--glass-border)'
-                }}>
+                <div className="landing-mobile-menu animate-fade">
                     {['home', 'features', 'about', 'contact'].map(id => (
                         <a key={id} className="navbar-link" onClick={() => scrollTo(id)}
                             style={{ display: 'block', padding: '0.8rem 0', borderBottom: '1px solid var(--glass-border)', cursor: 'pointer', textTransform: 'capitalize' }}>
@@ -87,37 +83,86 @@ const HeroSection = () => {
     const navigate = useNavigate();
 
     return (
-        <section id="home" className="hero-section">
-            <div className="bg-blob blob-1" />
-            <div className="bg-blob blob-2" />
-            <div className="bg-blob blob-3" />
-
-            <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center' }}>
-                <div className="hero-tag animate-fade-in" style={{ justifyContent: 'center' }}>
-                    <span className="hero-tag-dot" />
-                    Smart Feedback Platform for Education
+        <header id="home" className="hero-section">
+            <div
+                className="section-inner landing-hero-inner"
+                style={{ maxWidth: '860px', textAlign: 'center' }}
+            >
+                <div className="animate-fade-in" style={{ marginBottom: '0.35rem' }}>
+                    <div
+                        className="badge-pill"
+                        style={{
+                            padding: '0.58rem 1.18rem',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            letterSpacing: '-0.01em',
+                            color: 'var(--accent-primary)',
+                            borderColor: 'rgba(79, 70, 229, 0.34)',
+                            background: 'rgba(79, 70, 229, 0.07)',
+                        }}
+                    >
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-gold)' }}></div>
+                        Smart Feedback Platform for Education
+                    </div>
                 </div>
 
-                <h1 className="hero-title animate-fade-in animate-delay-1" style={{ textAlign: 'center', fontSize: 'clamp(2.5rem, 4.5vw, 4rem)', lineHeight: 1.15 }}>
-                    <span className="gradient-text">Student Feedback</span><br />
+                <h1
+                    className="hero-title landing-hero-title animate-fade-in"
+                    style={{
+                        fontSize: 'clamp(3.2rem, 6.1vw, 5.4rem)',
+                        lineHeight: 0.92,
+                        letterSpacing: '-0.055em',
+                        marginBottom: '1.3rem',
+                        color: 'var(--text-primary)',
+                    }}
+                >
+                    <span className="gold-text">Student Feedback</span> <br />
                     & Evaluation System
                 </h1>
 
-                <p className="hero-subtitle animate-fade-in animate-delay-2" style={{ textAlign: 'center', maxWidth: '650px', margin: '0 auto 2rem' }}>
-                    A modern, intuitive platform for institutions to gather, analyze, and act on student feedback — turning insights into educational excellence.
+                <p
+                    className="hero-subtitle landing-hero-subtitle animate-fade-in"
+                    style={{
+                        maxWidth: '660px',
+                        margin: '0 auto 2.45rem',
+                        fontSize: '0.9rem',
+                        lineHeight: 1.78,
+                        letterSpacing: '-0.01em',
+                        color: 'var(--text-secondary)',
+                    }}
+                >
+                    A modern, intuitive platform for institutions to gather, analyze, and act on
+                    student feedback - turning insights into educational excellence.
                 </p>
 
-                <div className="hero-buttons animate-fade-in animate-delay-3" style={{ justifyContent: 'center' }}>
-                    <button className="btn-primary" style={{ padding: '0.9rem 2rem', fontSize: '1rem' }} onClick={() => navigate('/login')}>
-                        Student Login <ArrowRight size={18} />
+                <div
+                    className="hero-buttons landing-hero-actions animate-fade-in"
+                    style={{ gap: '1rem', justifyContent: 'center' }}
+                >
+                    <button
+                        className="btn-primary landing-student-btn"
+                        style={{ minWidth: 232, minHeight: 62, padding: '0.95rem 1.8rem', fontSize: '0.9rem' }}
+                        onClick={() => navigate('/login')}
+                    >
+                        Student Login <ArrowRight size={22} />
                     </button>
-                    <button className="btn-secondary" style={{ padding: '0.9rem 2rem', fontSize: '1rem' }} onClick={() => navigate('/login')}>
-                        <ShieldCheck size={18} /> Admin Portal
+                    <button
+                        className="btn-secondary landing-admin-btn"
+                        style={{ minWidth: 232, minHeight: 62, padding: '0.95rem 1.8rem', fontSize: '0.9rem' }}
+                        onClick={() => navigate('/login')}
+                    >
+                        <ShieldCheck size={22} /> Admin Portal
                     </button>
                 </div>
 
+                <p
+                    className="landing-hero-note animate-fade-in"
+                    style={{ marginTop: '3.2rem', fontSize: '0.86rem', color: 'var(--text-muted)' }}
+                >
+                    Feedback that fuels educational excellence.
+                </p>
             </div>
-        </section>
+        </header>
     );
 };
 
@@ -214,7 +259,7 @@ const FeaturesSection = ({ onLearnMore }) => {
         <section id="features" className="section" style={{ background: 'linear-gradient(180deg, var(--bg-primary) 0%, rgba(13,22,39,0.5) 100%)' }}>
             <div className="section-inner">
                 <div className="section-header">
-                    <p className="section-label">Features</p>
+                    <p className="section-label" style={{ color: 'var(--accent-primary)', fontWeight: 800, display: 'inline-block', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Platform Features</p>
                     <h2 className="section-title">Everything You Need for<br /><span style={{ background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Better Education</span></h2>
                     <p className="section-description">Powerful tools designed to bridge the gap between students and educators through actionable insights.</p>
                 </div>
@@ -253,7 +298,7 @@ const HowItWorks = () => {
         <section className="section">
             <div className="section-inner">
                 <div className="section-header">
-                    <p className="section-label">How It Works</p>
+                    <p className="section-label" style={{ color: 'var(--accent-primary)', fontWeight: 800, display: 'inline-block', textTransform: 'uppercase', letterSpacing: '0.1em' }}>How It Works</p>
                     <h2 className="section-title">Simple. Smart. Effective.</h2>
                     <p className="section-description">Three easy steps to revolutionize your institution's feedback collection process.</p>
                 </div>
@@ -262,7 +307,7 @@ const HowItWorks = () => {
                     {steps.map((s, i) => (
                         <div key={i} className="glass-panel step-card animate-fade-in" style={{ animationDelay: `${i * 0.15}s` }}>
                             <div className="step-number">{s.n}</div>
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.75rem' }}>{s.title}</h3>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>{s.title}</h3>
                             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6 }}>{s.desc}</p>
                         </div>
                     ))}
@@ -384,7 +429,7 @@ const Footer = () => {
                         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
                             {[Twitter, Github, Linkedin].map((Icon, i) => (
                                 <a key={i} href="#" style={{ width: 36, height: 36, border: '1px solid var(--glass-border)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', transition: 'var(--transition)' }}
-                                    onMouseOver={e => { e.currentTarget.style.color = 'var(--accent-primary)'; e.currentTarget.style.borderColor = 'rgba(0,212,255,0.3)'; }}
+                                    onMouseOver={e => { e.currentTarget.style.color = 'var(--accent-primary)'; e.currentTarget.style.borderColor = 'rgba(79,70,229,0.35)'; }}
                                     onMouseOut={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--glass-border)'; }}>
                                     <Icon size={16} />
                                 </a>
@@ -492,7 +537,8 @@ const Landing = () => {
     const [selectedFeature, setSelectedFeature] = useState(null);
 
     return (
-        <div style={{ position: 'relative' }}>
+        <div className="landing-page-shell" style={{ position: 'relative' }}>
+            <DynamicBackground />
             <Navbar />
             <HeroSection />
             <FeaturesSection onLearnMore={setSelectedFeature} />

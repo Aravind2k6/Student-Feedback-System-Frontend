@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { LogOut, BookOpen, Menu, User } from 'lucide-react';
+import { LogOut, BookOpen, Menu, User, Moon, Sun } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 const Navbar = ({ role, toggleSidebar }) => {
     const navigate = useNavigate();
-    const { currentUser } = useApp();
+    const { currentUser, darkMode, toggleDarkMode } = useApp();
 
     const userName = (currentUser && currentUser.name) ? currentUser.name : (role === 'student' ? 'Student' : 'Admin User');
     const userInitial = userName && userName.length > 0 ? userName.charAt(0).toUpperCase() : (role === 'student' ? 'S' : 'A');
@@ -37,6 +37,8 @@ const Navbar = ({ role, toggleSidebar }) => {
                             {userInitial}
                         </div>
                     </div>
+
+                    <div style={{ width: 1, height: 24, background: 'var(--glass-border)' }}></div>
 
                     <div style={{ width: 1, height: 24, background: 'var(--glass-border)' }}></div>
 
