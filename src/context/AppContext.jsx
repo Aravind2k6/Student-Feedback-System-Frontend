@@ -101,14 +101,9 @@ const SEED_NOTIFICATIONS = [
     },
 ];
 
-const SEED_USERS = [
-    { id: '2400030040', name: 'Aravind', username: 'aravind', password: 'student123', role: 'student', dept: 'Computer Science', semester: '6th Semester', email: 'aravind@edu.com' },
-    { id: '2400030439', name: 'Jaswanth', username: 'jaswanth', password: 'student123', role: 'student', dept: 'Computer Science', semester: '6th Semester', email: 'jaswanth@edu.com' },
-    { id: '2400032357', name: 'Anish', username: 'anish', password: 'student123', role: 'student', dept: 'Computer Science', semester: '6th Semester', email: 'anish@edu.com' },
-    { id: 'admin-ram', name: 'Ram', username: 'ram', password: 'admin123', role: 'admin', email: 'admin@edu.com' },
-];
+const SEED_USERS = [];
 
-const APP_STATE_VERSION = 'v1';
+const APP_STATE_VERSION = 'v2';
 const APP_STATE_VERSION_KEY = 'edu_app_state_version';
 const STORAGE_KEYS_TO_RESET = [
     'edu_forms',
@@ -143,15 +138,9 @@ const load = (key, fallback) => {
 
 const normalizeAuthValue = (value) => String(value || '').trim().toLowerCase();
 
-const getUserLoginIdentifiers = (user) => {
-    const identifiers = [user.username, user.email, user.name];
-
-    if (user.role === 'admin') {
-        identifiers.push('admin', 'administrator');
-    }
-
-    return [...new Set(identifiers.map(normalizeAuthValue).filter(Boolean))];
-};
+const getUserLoginIdentifiers = (user) => (
+    [...new Set([user.username, user.email].map(normalizeAuthValue).filter(Boolean))]
+);
 
 const save = (key, value) => {
     try {

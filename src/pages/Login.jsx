@@ -71,9 +71,9 @@ const ForgotModal = ({ onClose }) => {
 };
 
 /* ── Create Account Modal ──────────────────────────────── */
-const CreateAccountModal = ({ onClose }) => {
+const CreateAccountModal = ({ onClose, initialRole = 'student' }) => {
     const { registerUser, findUserByEmail } = useApp();
-    const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', role: 'student' });
+    const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', role: initialRole });
     const [done, setDone] = useState(false);
     const [err, setErr] = useState('');
 
@@ -85,7 +85,7 @@ const CreateAccountModal = ({ onClose }) => {
 
         const usernameBase = form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
         const username = usernameBase || normalizedEmail.split('@')[0] || `user${Date.now()}`;
-        registerUser({
+        const createdUser = registerUser({
             id: form.role === 'admin' ? `admin-${Date.now()}` : `student-${Date.now()}`,
             name: form.name.trim(),
             username,
@@ -95,6 +95,7 @@ const CreateAccountModal = ({ onClose }) => {
             dept: form.role === 'student' ? 'Computer Science' : undefined,
             semester: form.role === 'student' ? '6th Semester' : undefined,
         });
+        void createdUser;
         setDone(true);
         setErr('');
     };
@@ -123,7 +124,7 @@ const CreateAccountModal = ({ onClose }) => {
                         justifyContent: 'center', margin: '0 auto 1rem', color: 'var(--accent-primary)',
                     }}><UserPlus size={22} /></div>
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.3rem' }}>Create Account</h2>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.87rem' }}>Join EduFeedback today.</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.87rem' }}>Create your account, then sign in with that email or username.</p>
                 </div>
 
                 {done ? (
@@ -242,10 +243,6 @@ const Login = () => {
         }, 650);
     };
 
-    const demoCredentials = role === 'admin'
-        ? 'Use admin / admin123 or admin@edu.com / admin123'
-        : 'Use aravind / student123';
-
     return (
         <div className="auth-shell">
             <div className="site-background" aria-hidden="true">
@@ -326,14 +323,14 @@ const Login = () => {
                                 <input
                                     type="text"
                                     className="auth-input"
-                                    placeholder={role === 'student' ? 'e.g. aravind or aravind@edu.com' : 'e.g. admin or admin@edu.com'}
+                                    placeholder={role === 'student' ? 'Enter your username or email' : 'Enter your admin username or email'}
                                     value={identifier}
                                     onChange={e => setIdentifier(e.target.value)}
                                     required
                                 />
                             </div>
                             <div style={{ marginTop: '0.45rem', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                                {demoCredentials}
+                                Create an account first if you do not have one yet.
                             </div>
                         </div>
 
@@ -384,7 +381,7 @@ const Login = () => {
             </div>
 
             {showForgot && <ForgotModal onClose={() => setShowForgot(false)} />}
-            {showCreate && <CreateAccountModal onClose={() => setShowCreate(false)} />}
+            {showCreate && <CreateAccountModal initialRole={role} onClose={() => setShowCreate(false)} />}
         </div>
     );
 };
