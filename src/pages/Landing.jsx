@@ -43,10 +43,10 @@ const Navbar = () => {
                     </div>
 
                     <div className="navbar-actions">
-                        <button className="landing-login-btn" onClick={() => navigate('/login')}>
+                        <button className="landing-login-btn" onClick={() => navigate('/login?role=student')}>
                             Login
                         </button>
-                        <button className="btn-primary landing-cta-btn" onClick={() => navigate('/login')}>
+                        <button className="btn-primary landing-cta-btn" onClick={() => navigate('/login?role=student')}>
                             Get Started <ArrowRight size={17} />
                         </button>
                         <button
@@ -69,8 +69,8 @@ const Navbar = () => {
                         </a>
                     ))}
                     <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                        <button className="btn-ghost" style={{ flex: 1 }} onClick={() => { navigate('/login'); setMenuOpen(false); }}>Login</button>
-                        <button className="btn-primary" style={{ flex: 1 }} onClick={() => { navigate('/login'); setMenuOpen(false); }}>Get Started</button>
+                        <button className="btn-ghost" style={{ flex: 1 }} onClick={() => { navigate('/login?role=student'); setMenuOpen(false); }}>Login</button>
+                        <button className="btn-primary" style={{ flex: 1 }} onClick={() => { navigate('/login?role=student'); setMenuOpen(false); }}>Get Started</button>
                     </div>
                 </div>
             )}
@@ -142,14 +142,14 @@ const HeroSection = () => {
                     <button
                         className="btn-primary landing-student-btn"
                         style={{ minWidth: 232, minHeight: 62, padding: '0.95rem 1.8rem', fontSize: '0.9rem' }}
-                        onClick={() => navigate('/login')}
+                        onClick={() => navigate('/login?role=student')}
                     >
                         Student Login <ArrowRight size={22} />
                     </button>
                     <button
                         className="btn-secondary landing-admin-btn"
                         style={{ minWidth: 232, minHeight: 62, padding: '0.95rem 1.8rem', fontSize: '0.9rem' }}
-                        onClick={() => navigate('/login')}
+                        onClick={() => navigate('/login?role=admin')}
                     >
                         <ShieldCheck size={22} /> Admin Portal
                     </button>

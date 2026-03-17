@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { User, ShieldCheck, ArrowRight, Lock, BookOpen, Eye, EyeOff, X, Mail, UserPlus } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -208,7 +208,9 @@ const CreateAccountModal = ({ onClose }) => {
 /* ── Main Login Page ───────────────────────────────────── */
 const Login = () => {
     const navigate = useNavigate();
-    const [role, setRole] = useState('student');
+    const [searchParams] = useSearchParams();
+    const initialRole = searchParams.get('role') === 'admin' ? 'admin' : 'student';
+    const [role, setRole] = useState(initialRole);
     const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [showPass, setShowPass] = useState(false);
@@ -218,6 +220,10 @@ const Login = () => {
     const [showCreate, setShowCreate] = useState(false);
 
     const { loginUser, validateUser } = useApp();
+
+    useEffect(() => {
+        setRole(searchParams.get('role') === 'admin' ? 'admin' : 'student');
+    }, [searchParams]);
 
     const handleLogin = (e) => {
         e.preventDefault();

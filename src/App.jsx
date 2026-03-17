@@ -66,23 +66,13 @@ const ProtectedRoute = ({ children, role }) => {
   return children;
 };
 
-const LoginRoute = () => {
-  const { currentUser } = useApp();
-
-  if (!currentUser) {
-    return <Login />;
-  }
-
-  return <Navigate to={currentUser.role === 'admin' ? '/admin' : '/student'} replace />;
-};
-
 function App() {
   return (
     <AppProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<LoginRoute />} />
+          <Route path="/login" element={<Login />} />
 
           <Route
             path="/student"
