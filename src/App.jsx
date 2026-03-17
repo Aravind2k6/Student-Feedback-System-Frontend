@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import Sidebar from './components/Sidebar';
 import { Moon, Sun } from 'lucide-react';
@@ -52,22 +52,88 @@ const Layout = ({ children, role }) => (
   </div>
 );
 
+const ProtectedRoute = ({ children, role }) => {
+  const { currentUser } = useApp();
+
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (currentUser.role !== role) {
+    return <Navigate to={currentUser.role === 'admin' ? '/admin' : '/student'} replace />;
+  }
+
+  return children;
+};
+
+const LoginRoute = () => {
+  const { currentUser } = useApp();
+
+  if (!currentUser) {
+    return <Login />;
+  }
+
+  return <Navigate to={currentUser.role === 'admin' ? '/admin' : '/student'} replace />;
+};
+
 function App() {
   return (
     <AppProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<LoginRoute />} />
 
-          <Route path="/student" element={<Layout role="student"><StudentDashboard /></Layout>} />
+          <Route
+            path="/student"
+            element={(
+              <ProtectedRoute role="student">
+                <Layout role="student"><StudentDashboard /></Layout>
+              </ProtectedRoute>
+            )}
+          />
 
           {/* Admin */}
-          <Route path="/admin" element={<Layout role="admin"><AdminDashboard /></Layout>} />
-          <Route path="/admin/analysis" element={<Layout role="admin"><AnalyzeFeedback /></Layout>} />
-          <Route path="/admin/create" element={<Layout role="admin"><CreateForm /></Layout>} />
-          <Route path="/admin/forms" element={<Layout role="admin"><ManageForms /></Layout>} />
-          <Route path="/admin/courses" element={<Layout role="admin"><Courses /></Layout>} />
+          <Route
+            path="/admin"
+            element={(
+              <ProtectedRoute role="admin">
+                <Layout role="admin"><AdminDashboard /></Layout>
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/analysis"
+            element={(
+              <ProtectedRoute role="admin">
+                <Layout role="admin"><AnalyzeFeedback /></Layout>
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/create"
+            element={(
+              <ProtectedRoute role="admin">
+                <Layout role="admin"><CreateForm /></Layout>
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/forms"
+            element={(
+              <ProtectedRoute role="admin">
+                <Layout role="admin"><ManageForms /></Layout>
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/admin/courses"
+            element={(
+              <ProtectedRoute role="admin">
+                <Layout role="admin"><Courses /></Layout>
+              </ProtectedRoute>
+            )}
+          />
 
           {/* Fallback */}
           <Route path="*" element={<Landing />} />

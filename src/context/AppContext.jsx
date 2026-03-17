@@ -141,6 +141,18 @@ const load = (key, fallback) => {
     }
 };
 
+const normalizeAuthValue = (value) => String(value || '').trim().toLowerCase();
+
+const getUserLoginIdentifiers = (user) => {
+    const identifiers = [user.username, user.email, user.name];
+
+    if (user.role === 'admin') {
+        identifiers.push('admin', 'administrator');
+    }
+
+    return [...new Set(identifiers.map(normalizeAuthValue).filter(Boolean))];
+};
+
 const save = (key, value) => {
     try {
         localStorage.setItem(key, JSON.stringify(value));
@@ -280,13 +292,16 @@ export const AppProvider = ({ children }) => {
         users.find((user) => user.email.toLowerCase() === email.toLowerCase())
     ), [users]);
 
-    const validateUser = useCallback((username, password, role) => (
-        users.find((user) => (
-            user.username.toLowerCase() === username.toLowerCase() &&
-            user.password === password &&
-            user.role === role
-        ))
-    ), [users]);
+    const validateUser = useCallback((identifier, password, role) => {
+        const normalizedIdentifier = normalizeAuthValue(identifier);
+        const normalizedPassword = String(password || '').trim();
+
+        return users.find((user) => (
+            user.role === role &&
+            user.password === normalizedPassword &&
+            getUserLoginIdentifiers(user).includes(normalizedIdentifier)
+        ));
+    }, [users]);
 
     const addNotification = useCallback((type, message, metadata = {}) => {
         const newNotification = {

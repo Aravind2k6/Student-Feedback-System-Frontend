@@ -209,7 +209,7 @@ const CreateAccountModal = ({ onClose }) => {
 const Login = () => {
     const navigate = useNavigate();
     const [role, setRole] = useState('student');
-    const [username, setUsername] = useState('');
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [showPass, setShowPass] = useState(false);
     const [error, setError] = useState('');
@@ -225,16 +225,20 @@ const Login = () => {
         setLoading(true);
         setTimeout(() => {
             setLoading(false);
-            const authenticatedUser = validateUser(username.trim(), password, role);
+            const authenticatedUser = validateUser(identifier, password, role);
 
             if (authenticatedUser) {
                 loginUser(authenticatedUser);
                 navigate(role === 'student' ? '/student' : '/admin');
             } else {
-                setError('Invalid username or password. Please try again.');
+                setError(`Invalid ${role === 'admin' ? 'admin' : 'student'} credentials. Please try again.`);
             }
         }, 650);
     };
+
+    const demoCredentials = role === 'admin'
+        ? 'Use admin / admin123 or admin@edu.com / admin123'
+        : 'Use aravind / student123';
 
     return (
         <div className="auth-shell">
@@ -308,11 +312,22 @@ const Login = () => {
                     <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
                         {/* Username */}
                         <div>
-                            <label className="form-label" style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.6rem' }}>USERNAME</label>
+                            <label className="form-label" style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.6rem' }}>
+                                {role === 'admin' ? 'USERNAME OR EMAIL' : 'USERNAME OR EMAIL'}
+                            </label>
                             <div style={{ position: 'relative' }}>
                                 <User size={16} style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                                <input type="text" className="auth-input" placeholder={role === 'student' ? 'e.g. Aravind' : 'e.g. Ram'}
-                                    value={username} onChange={e => setUsername(e.target.value)} required />
+                                <input
+                                    type="text"
+                                    className="auth-input"
+                                    placeholder={role === 'student' ? 'e.g. aravind or aravind@edu.com' : 'e.g. admin or admin@edu.com'}
+                                    value={identifier}
+                                    onChange={e => setIdentifier(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div style={{ marginTop: '0.45rem', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                                {demoCredentials}
                             </div>
                         </div>
 
