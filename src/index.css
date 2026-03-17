@@ -1195,12 +1195,13 @@ textarea.form-input {
   letter-spacing: -0.055em;
   font-weight: 800;
   font-family: 'Poppins', 'Plus Jakarta Sans', sans-serif;
+  color: var(--bg-navy);
 }
 
 .landing-hero-subtitle {
   max-width: 660px;
   margin: 0 auto 2.5rem;
-  color: #bec8d8;
+  color: #5b6477;
   font-size: 0.9rem;
   line-height: 1.76;
   font-weight: 500;
@@ -1240,7 +1241,7 @@ textarea.form-input {
 
 .landing-hero-note {
   margin-top: 3.2rem;
-  color: #8a95aa;
+  color: #6b7384;
   font-size: 0.86rem;
   font-weight: 500;
   font-family: 'Poppins', 'Plus Jakarta Sans', sans-serif;

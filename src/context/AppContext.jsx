@@ -157,7 +157,7 @@ export const AppProvider = ({ children }) => {
     const [currentUser, setCurrentUser] = useState(() => load('edu_current_user', null));
 
     // Dark mode state
-    const [darkMode, setDarkMode] = useState(() => load('edu_dark_mode', true));
+    const [darkMode, setDarkMode] = useState(() => load('edu_dark_mode', false));
 
     // Apply dark mode theme to document
     useEffect(() => {

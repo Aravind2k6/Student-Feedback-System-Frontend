@@ -113,7 +113,7 @@ const HeroSection = () => {
                         lineHeight: 0.92,
                         letterSpacing: '-0.055em',
                         marginBottom: '1.3rem',
-                        color: 'var(--text-primary)',
+                        color: 'var(--bg-navy)',
                     }}
                 >
                     <span className="gold-text">Student Feedback</span> <br />
@@ -128,7 +128,7 @@ const HeroSection = () => {
                         fontSize: '0.9rem',
                         lineHeight: 1.78,
                         letterSpacing: '-0.01em',
-                        color: 'var(--text-secondary)',
+                        color: '#5b6477',
                     }}
                 >
                     A modern, intuitive platform for institutions to gather, analyze, and act on
@@ -157,7 +157,7 @@ const HeroSection = () => {
 
                 <p
                     className="landing-hero-note animate-fade-in"
-                    style={{ marginTop: '3.2rem', fontSize: '0.86rem', color: 'var(--text-muted)' }}
+                    style={{ marginTop: '3.2rem', fontSize: '0.86rem', color: '#6b7384' }}
                 >
                     Feedback that fuels educational excellence.
                 </p>
