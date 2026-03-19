@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, Moon, Sun } from 'lucide-react';
+import { Search, Bell, Moon, Sun, PlusCircle, ClipboardList } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const AdminDashboard = () => {
@@ -114,6 +114,31 @@ const AdminDashboard = () => {
             <div className="admin-ov-welcome">
                 <h1 className="admin-ov-welcome-title">Welcome back, {adminName}! 👋</h1>
                 <p className="admin-ov-welcome-sub">Here's what's happening with your feedback system today.</p>
+            </div>
+
+            <div style={{ padding: '0 2rem 1.25rem' }}>
+                <div className="admin-ov-panel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div>
+                        <div className="admin-ov-panel-title">Questions & Forms</div>
+                        <div className="admin-ov-panel-sub">Add new questions to a feedback form and manage existing forms.</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <button
+                            className="admin-ov-view-all-btn"
+                            onClick={() => navigate('/admin/create')}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+                        >
+                            <PlusCircle size={16} /> Add Questions
+                        </button>
+                        <button
+                            className="btn-ghost"
+                            onClick={() => navigate('/admin/forms')}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.55rem 1rem' }}
+                        >
+                            <ClipboardList size={16} /> Manage Forms
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Stat Cards */}

@@ -7,6 +7,7 @@ import DynamicBackground from './components/DynamicBackground';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import StudentDashboard from './pages/student/StudentDashboard';
+import StudentCourses from './pages/student/StudentCourses';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AnalyzeFeedback from './pages/admin/AnalyzeFeedback';
 import CreateForm from './pages/admin/CreateForm';
@@ -45,7 +46,6 @@ const Layout = ({ children, role }) => (
     <Sidebar role={role} />
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, background: 'transparent' }}>
       {role === 'student' && <Navbar role={role} />}
-      {role === 'admin' && <AdminNavbar />}
       <main className="content-wrapper animate-fade-in" style={{ flex: 1, padding: role === 'admin' ? 0 : undefined }}>{children}</main>
       <Footer />
     </div>
@@ -79,6 +79,14 @@ function App() {
             element={(
               <ProtectedRoute role="student">
                 <Layout role="student"><StudentDashboard /></Layout>
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/student/courses"
+            element={(
+              <ProtectedRoute role="student">
+                <Layout role="student"><StudentCourses /></Layout>
               </ProtectedRoute>
             )}
           />

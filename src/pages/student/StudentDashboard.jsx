@@ -161,6 +161,7 @@ const StudentDashboard = () => {
             if (!f.required) return false;
             const val = dynamicRatings[f.id];
             if (f.type === 'rating') return !val || val === 0;
+            if (f.type === 'checkbox') return (!val || val.length === 0);
             return !val || val === '';
         });
 
@@ -595,6 +596,48 @@ const StudentDashboard = () => {
                                                                     <option value="">Select an option...</option>
                                                                     {(field.options || []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                                 </select>
+                                                            )}
+                                                            {field.type === 'radio' && (
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.4rem' }}>
+                                                                    {(field.options || []).map(opt => (
+                                                                        <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                                                                            <input
+                                                                                type="radio"
+                                                                                name={field.id}
+                                                                                value={opt}
+                                                                                checked={dynamicRatings[field.id] === opt}
+                                                                                onChange={(e) => setDynamicRatings(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                                                                style={{ accentColor: 'var(--accent-primary)', width: 16, height: 16 }}
+                                                                            />
+                                                                            {opt}
+                                                                        </label>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                            {field.type === 'checkbox' && (
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.4rem' }}>
+                                                                    {(field.options || []).map(opt => {
+                                                                        const currentVals = dynamicRatings[field.id] || [];
+                                                                        return (
+                                                                            <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    value={opt}
+                                                                                    checked={currentVals.includes(opt)}
+                                                                                    onChange={(e) => {
+                                                                                        const isChecked = e.target.checked;
+                                                                                        setDynamicRatings(prev => {
+                                                                                            const existing = prev[field.id] || [];
+                                                                                            return { ...prev, [field.id]: isChecked ? [...existing, opt] : existing.filter(v => v !== opt) }
+                                                                                        });
+                                                                                    }}
+                                                                                    style={{ accentColor: 'var(--accent-primary)', width: 17, height: 17, borderRadius: 4 }}
+                                                                                />
+                                                                                {opt}
+                                                                            </label>
+                                                                        );
+                                                                    })}
+                                                                </div>
                                                             )}
                                                         </div>
                                                     );

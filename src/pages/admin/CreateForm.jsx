@@ -12,6 +12,8 @@ const FIELD_TYPES = [
     { value: 'email', label: 'Email', icon: '📧' },
     { value: 'number', label: 'Number', icon: '🔢' },
     { value: 'select', label: 'Dropdown', icon: '🔽' },
+    { value: 'radio', label: 'Multiple Choice', icon: '🔘' },
+    { value: 'checkbox', label: 'Checkboxes', icon: '☑️' },
     { value: 'rating', label: '4-Point Rating', icon: '⭐' },
     { value: 'yesno', label: 'Yes / No', icon: '✅' },
     { value: 'date', label: 'Date Picker', icon: '📅' },
@@ -19,7 +21,7 @@ const FIELD_TYPES = [
 
 const TYPE_COLORS = {
     text: '#7c6cf5', textarea: '#a78bfa', email: '#60a5fa',
-    number: '#34d399', select: '#f59e0b', rating: '#fbbf24', yesno: '#22d3a5', date: '#f87171',
+    number: '#34d399', select: '#f59e0b', radio: '#ec4899', checkbox: '#8b5cf6', rating: '#fbbf24', yesno: '#22d3a5', date: '#f87171',
 };
 
 const mkField = (type) => ({
@@ -28,7 +30,7 @@ const mkField = (type) => ({
     label: '',
     required: false,
     placeholder: '',
-    options: ['select', 'rating'].includes(type) ? ['Option 1', 'Option 2', 'Option 3', 'Option 4'] : undefined,
+    options: ['select', 'rating', 'radio', 'checkbox'].includes(type) ? ['Option 1', 'Option 2', 'Option 3'] : undefined,
 });
 
 /* ── Field row component ── */
@@ -67,8 +69,8 @@ const FieldRow = ({ field, index, onChange, onRemove }) => {
                     />
                 )}
 
-                {/* Options (for select and rating) */}
-                {['select', 'rating'].includes(field.type) && (
+                {/* Options (for select, radio, checkbox, and rating) */}
+                {['select', 'rating', 'radio', 'checkbox'].includes(field.type) && (
                     <div style={{ marginTop: '0.5rem' }}>
                         {(field.options || []).map((opt, i) => (
                             <div key={i} style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem' }}>
@@ -103,6 +105,43 @@ const FieldRow = ({ field, index, onChange, onRemove }) => {
     );
 };
 
+/* ── Templates ── */
+const TEMPLATES = [
+    {
+        id: 'standard_course', label: 'Standard Course Evaluation',
+        fields: [
+            { ...mkField('rating'), label: '1. How well did the instructor explain the subject concepts?', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
+            { ...mkField('rating'), label: '2. How clear were the lecture presentations?', required: true, options: ['Very Clear', 'Clear', 'Somewhat Clear', 'Not Clear'] },
+            { ...mkField('rating'), label: '3. How useful were the study materials provided for the subject?', required: true, options: ['Very Useful', 'Useful', 'Slightly Useful', 'Not Useful'] },
+            { ...mkField('rating'), label: '4. How effectively were doubts and questions addressed during the class?', required: true, options: ['Very Effectively', 'Effectively', 'Moderately', 'Not Effectively'] },
+            { ...mkField('rating'), label: '5. Overall, how would you rate this subject?', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
+        ]
+    },
+    {
+        id: 'instructor', label: 'Instructor Performance',
+        fields: [
+            { ...mkField('rating'), label: '1. Punctuality and regularity of the instructor:', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
+            { ...mkField('rating'), label: '2. Communication skills and articulation:', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
+            { ...mkField('rating'), label: '3. Approachability and willingness to help:', required: true, options: ['Very Approachable', 'Approachable', 'Average', 'Not Approachable'] },
+            { ...mkField('textarea'), label: '4. What are the instructor\'s strongest teaching attributes?', required: false },
+        ]
+    },
+    {
+        id: 'facilities', label: 'Infrastructure & Facilities',
+        fields: [
+            { ...mkField('rating'), label: '1. Quality of laboratory equipment and software:', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
+            { ...mkField('rating'), label: '2. Speed and reliability of campus Wi-Fi:', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
+            { ...mkField('rating'), label: '3. Library resources and reading space:', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
+            { ...mkField('yesno'), label: '4. Do you face any issues with classrooms?', required: true },
+            { ...mkField('textarea'), label: '5. Please specify any infrastructure issues you face:', required: false },
+        ]
+    },
+    {
+        id: 'blank', label: 'Blank Form',
+        fields: []
+    }
+];
+
 /* ── CreateForm page ── */
 const CreateForm = () => {
     const navigate = useNavigate();
@@ -114,13 +153,18 @@ const CreateForm = () => {
     const [meta, setMeta] = useState({
         title: '', description: '', courseCode: '', course: '', deadline: '',
     });
-    const [fields, setFields] = useState([
-        { ...mkField('rating'), label: '1. How well did the instructor explain the subject concepts?', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
-        { ...mkField('rating'), label: '2. How clear were the lecture presentations?', required: true, options: ['Very Clear', 'Clear', 'Somewhat Clear', 'Not Clear'] },
-        { ...mkField('rating'), label: '3. How useful were the study materials provided for the subject?', required: true, options: ['Very Useful', 'Useful', 'Slightly Useful', 'Not Useful'] },
-        { ...mkField('rating'), label: '4. How effectively were doubts and questions addressed during the class?', required: true, options: ['Very Effectively', 'Effectively', 'Moderately', 'Not Effectively'] },
-        { ...mkField('rating'), label: '5. Overall, how would you rate this subject?', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
-    ]);
+    
+    const [templateId, setTemplateId] = useState('standard_course');
+    const [fields, setFields] = useState(TEMPLATES[0].fields);
+
+    const handleTemplateChange = (e) => {
+        const id = e.target.value;
+        setTemplateId(id);
+        const template = TEMPLATES.find(t => t.id === id);
+        if (template) {
+            setFields(template.fields.map(f => ({ ...f, id: `field-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` })));
+        }
+    };
 
     const addField = (type) => setFields(prev => [...prev, mkField(type)]);
     const removeField = (id) => setFields(prev => prev.filter(f => f.id !== id));
@@ -147,7 +191,7 @@ const CreateForm = () => {
     );
 
     return (
-        <div>
+        <div style={{ padding: '2rem 2.5rem' }}>
             <h1 className="page-title animate-fade-in">Create Feedback Form</h1>
             <p className="page-subtitle animate-fade-in animate-delay-1">Build a Google-Form style survey your students can fill.</p>
 
@@ -174,6 +218,13 @@ const CreateForm = () => {
                         {/* ── Left: Form Meta ── */}
                         <div className="glass-panel">
                             <h3 style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '1.25rem', color: 'var(--accent-secondary)' }}>📋 Form Details</h3>
+
+                            <div className="form-group">
+                                <label className="form-label" style={{ color: 'var(--accent-primary)' }}>Feedback Format / Template</label>
+                                <select className="form-input" value={templateId} onChange={handleTemplateChange} style={{ fontWeight: 700 }}>
+                                    {TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                                </select>
+                            </div>
 
                             <div className="form-group">
                                 <label className="form-label">Form Title *</label>
@@ -289,6 +340,24 @@ const CreateForm = () => {
                             )}
                             {f.type === 'select' && (
                                 <div className="form-input" style={{ color: 'var(--text-muted)', cursor: 'not-allowed' }}>Select an option ▾</div>
+                            )}
+                            {f.type === 'radio' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.4rem' }}>
+                                    {(f.options || []).map(opt => (
+                                        <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem', cursor: 'not-allowed' }}>
+                                            <input type="radio" disabled style={{ accentColor: 'var(--accent-primary)', width: 15, height: 15 }} /> {opt}
+                                        </label>
+                                    ))}
+                                </div>
+                            )}
+                            {f.type === 'checkbox' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.4rem' }}>
+                                    {(f.options || []).map(opt => (
+                                        <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem', cursor: 'not-allowed' }}>
+                                            <input type="checkbox" disabled style={{ accentColor: 'var(--accent-primary)', width: 16, height: 16, borderRadius: 3 }} /> {opt}
+                                        </label>
+                                    ))}
+                                </div>
                             )}
                             {f.type === 'rating' && (
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>

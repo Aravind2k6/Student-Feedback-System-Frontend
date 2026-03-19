@@ -98,7 +98,7 @@ const AnalyzeFeedback = () => {
 
 
     return (
-        <div>
+        <div style={{ padding: '2rem 2.5rem' }}>
             {/* Header */}
             <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>

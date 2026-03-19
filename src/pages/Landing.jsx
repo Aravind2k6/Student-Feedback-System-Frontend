@@ -88,20 +88,23 @@ const HeroSection = () => {
                 className="section-inner landing-hero-inner"
                 style={{ maxWidth: '860px', textAlign: 'center' }}
             >
-                <div className="animate-fade-in" style={{ marginBottom: '0.35rem' }}>
+                <div className="animate-fade-in" style={{ marginBottom: '1rem' }}>
                     <div
                         className="badge-pill"
                         style={{
                             padding: '0.58rem 1.18rem',
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: 700,
                             letterSpacing: '-0.01em',
                             color: 'var(--accent-primary)',
                             borderColor: 'rgba(79, 70, 229, 0.34)',
                             background: 'rgba(79, 70, 229, 0.07)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
                         }}
                     >
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-gold)' }}></div>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-primary)' }}></div>
                         Smart Feedback Platform for Education
                     </div>
                 </div>
@@ -109,15 +112,16 @@ const HeroSection = () => {
                 <h1
                     className="hero-title landing-hero-title animate-fade-in"
                     style={{
-                        fontSize: 'clamp(3.2rem, 6.1vw, 5.4rem)',
-                        lineHeight: 0.92,
-                        letterSpacing: '-0.055em',
-                        marginBottom: '1.3rem',
+                        fontSize: 'clamp(2.8rem, 5vw, 4.2rem)',
+                        lineHeight: 0.95,
+                        letterSpacing: '-0.04em',
+                        marginBottom: '1.5rem',
                         color: 'var(--bg-navy)',
+                        fontWeight: 800
                     }}
                 >
-                    <span className="gold-text">Student Feedback</span> <br />
-                    & Evaluation System
+                    <span style={{ color: 'var(--accent-primary)' }}>Student Feedback</span> <br />
+                    <span style={{ color: '#0d1627' }}>& Evaluation System</span>
                 </h1>
 
                 <p
@@ -427,11 +431,15 @@ const Footer = () => {
                         </div>
                         <p>Empowering educators and students with smart feedback tools to improve educational experiences.</p>
                         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
-                            {[Twitter, Github, Linkedin].map((Icon, i) => (
-                                <a key={i} href="#" style={{ width: 36, height: 36, border: '1px solid var(--glass-border)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', transition: 'var(--transition)' }}
+                            {[
+                                { Icon: Twitter, link: '#' },
+                                { Icon: Github, link: 'https://github.com/Aravind2k6/Student-Feedback-System-Frontend.git' },
+                                { Icon: Linkedin, link: 'https://www.linkedin.com/in/aravind-nelavelli-851211335/' }
+                            ].map((item, i) => (
+                                <a key={i} href={item.link} target={item.link === '#' ? '_self' : '_blank'} rel="noreferrer" style={{ width: 36, height: 36, border: '1px solid var(--glass-border)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', transition: 'var(--transition)' }}
                                     onMouseOver={e => { e.currentTarget.style.color = 'var(--accent-primary)'; e.currentTarget.style.borderColor = 'rgba(79,70,229,0.35)'; }}
                                     onMouseOut={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--glass-border)'; }}>
-                                    <Icon size={16} />
+                                    <item.Icon size={16} />
                                 </a>
                             ))}
                         </div>

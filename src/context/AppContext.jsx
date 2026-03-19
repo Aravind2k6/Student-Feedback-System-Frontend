@@ -9,7 +9,7 @@ const SEED_FORMS = [
         deadline: '2026-03-24',
         published: true,
         type: 'Course',
-        target: 'Foundations of Software Application Development',
+        target: 'Full Stack Application Development',
         course: 'FSAD',
         fields: [
             { id: 'f1', label: 'How well did the instructor explain the subject concepts?', type: 'rating', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
@@ -75,8 +75,8 @@ const SEED_FORMS = [
 ];
 
 const DEFAULT_COURSES = [
-    { name: 'FSAD', code: '24SDC02E', credits: 4, courseName: 'Foundations of Software Application Development', instructor: 'Ramu', released: true },
-    { name: 'CIS', code: '24CS220A', credits: 3, courseName: 'Computer Science', instructor: 'Ganesh', released: true },
+    { name: 'FSAD', code: '24SDC02E', credits: 4, courseName: 'Full Stack Application Development', instructor: 'Ramu', released: true },
+    { name: 'CIS', code: '24CS220A', credits: 3, courseName: 'Cloud Infrastructure and Services', instructor: 'Ganesh', released: true },
     { name: 'DBMS', code: '24DBMS301', credits: 4, courseName: 'Database Management Systems', instructor: 'Abhinav', released: true },
     { name: 'OS', code: '24OSS401', credits: 3, courseName: 'Operating Systems', instructor: 'Raghavendra', released: true },
     { name: 'AIML', code: '24AML501', credits: 3, courseName: 'Artificial Intelligence', instructor: 'Sai', released: true },
@@ -103,16 +103,14 @@ const SEED_NOTIFICATIONS = [
 
 const SEED_USERS = [];
 
-const APP_STATE_VERSION = 'v2';
+const APP_STATE_VERSION = 'v4';
 const APP_STATE_VERSION_KEY = 'edu_app_state_version';
 const STORAGE_KEYS_TO_RESET = [
     'edu_forms',
     'edu_forms_version',
     'edu_courses',
-    'edu_current_user',
     'edu_dark_mode',
     'edu_notifications',
-    'edu_users',
     'edu_feedbacks',
     'edu_submission_counts',
     'edu_student_submitted',
@@ -138,8 +136,80 @@ const load = (key, fallback) => {
 
 const normalizeAuthValue = (value) => String(value || '').trim().toLowerCase();
 
+const buildUsernameFromProfile = (name, email) => {
+    const usernameFromName = normalizeAuthValue(name).replace(/[^a-z0-9]+/g, '');
+    if (usernameFromName) {
+        return usernameFromName;
+    }
+
+    const normalizedEmail = normalizeAuthValue(email);
+    if (normalizedEmail) {
+        return normalizedEmail.split('@')[0];
+    }
+
+    return '';
+};
+
+const normalizeUserRecord = (user) => {
+    if (!user || typeof user !== 'object') {
+        return null;
+    }
+
+    const normalizedEmail = normalizeAuthValue(user.email);
+    const normalizedUsername = normalizeAuthValue(
+        user.username || buildUsernameFromProfile(user.name, user.email)
+    );
+    const normalizedRole = user.role === 'admin' ? 'admin' : 'student';
+    const normalizedPassword = typeof user.password === 'string'
+        ? user.password.trim()
+        : String(user.password || '').trim();
+
+    if (!normalizedEmail && !normalizedUsername) {
+        return null;
+    }
+
+    return {
+        ...user,
+        id: String(user.id || `${normalizedRole}-${normalizedUsername || normalizedEmail || 'user'}`),
+        name: String(user.name || '').trim(),
+        email: normalizedEmail,
+        username: normalizedUsername,
+        password: normalizedPassword,
+        role: normalizedRole,
+    };
+};
+
+const normalizeUserCollection = (users) => {
+    if (!Array.isArray(users)) {
+        return [];
+    }
+
+    const seenKeys = new Set();
+
+    return users.reduce((acc, user) => {
+        const normalizedUser = normalizeUserRecord(user);
+
+        if (!normalizedUser) {
+            return acc;
+        }
+
+        const userKey = `${normalizedUser.role}:${normalizedUser.email || normalizedUser.username}`;
+        if (seenKeys.has(userKey)) {
+            return acc;
+        }
+
+        seenKeys.add(userKey);
+        acc.push(normalizedUser);
+        return acc;
+    }, []);
+};
+
 const getUserLoginIdentifiers = (user) => (
-    [...new Set([user.username, user.email].map(normalizeAuthValue).filter(Boolean))]
+    [...new Set([
+        user.username,
+        user.email,
+        buildUsernameFromProfile(user.name, user.email),
+    ].map(normalizeAuthValue).filter(Boolean))]
 );
 
 const save = (key, value) => {
@@ -152,26 +222,28 @@ const save = (key, value) => {
 
 const getInitialAppState = () => {
     try {
+        const preservedUsers = normalizeUserCollection(load('edu_users', DEFAULT_APP_STATE.users));
+        const preservedCurrentUser = normalizeUserRecord(load('edu_current_user', DEFAULT_APP_STATE.currentUser));
         const storedVersion = localStorage.getItem(APP_STATE_VERSION_KEY);
 
         if (storedVersion !== APP_STATE_VERSION) {
             STORAGE_KEYS_TO_RESET.forEach((key) => localStorage.removeItem(key));
             save('edu_forms', DEFAULT_APP_STATE.forms);
             save('edu_courses', DEFAULT_APP_STATE.courses);
-            save('edu_current_user', DEFAULT_APP_STATE.currentUser);
             save('edu_dark_mode', DEFAULT_APP_STATE.darkMode);
             save('edu_notifications', DEFAULT_APP_STATE.notifications);
-            save('edu_users', DEFAULT_APP_STATE.users);
+            save('edu_current_user', preservedCurrentUser);
+            save('edu_users', preservedUsers);
             localStorage.setItem(APP_STATE_VERSION_KEY, APP_STATE_VERSION);
         }
 
         return {
             forms: load('edu_forms', DEFAULT_APP_STATE.forms),
             courses: load('edu_courses', DEFAULT_APP_STATE.courses),
-            currentUser: load('edu_current_user', DEFAULT_APP_STATE.currentUser),
+            currentUser: normalizeUserRecord(load('edu_current_user', preservedCurrentUser)),
             darkMode: load('edu_dark_mode', DEFAULT_APP_STATE.darkMode),
             notifications: load('edu_notifications', DEFAULT_APP_STATE.notifications),
-            users: load('edu_users', DEFAULT_APP_STATE.users),
+            users: normalizeUserCollection(load('edu_users', preservedUsers)),
         };
     } catch {
         return DEFAULT_APP_STATE;
@@ -257,39 +329,70 @@ export const AppProvider = ({ children }) => {
     useEffect(() => { save('edu_notifications', notifications); }, [notifications]);
 
     const loginUser = useCallback((user) => {
-        setCurrentUser(user);
+        const normalizedUser = normalizeUserRecord(user);
+        setCurrentUser(normalizedUser);
+        save('edu_current_user', normalizedUser);
     }, []);
 
     const logoutUser = useCallback(() => {
         setCurrentUser(null);
+        save('edu_current_user', null);
     }, []);
 
     const registerUser = useCallback((userData) => {
-        const newUser = {
+        const newUser = normalizeUserRecord({
             ...userData,
             id: userData.id || `user-${Date.now()}`,
-        };
-        setUsers((prev) => [...prev, newUser]);
+        });
+
+        if (!newUser) {
+            return null;
+        }
+
+        setUsers((prev) => {
+            const nextUsers = [
+                ...prev.filter((user) => !(
+                    user.id === newUser.id ||
+                    (user.role === newUser.role && normalizeAuthValue(user.email) === newUser.email)
+                )),
+                newUser,
+            ];
+            save('edu_users', nextUsers);
+            return nextUsers;
+        });
         return newUser;
     }, []);
 
     const deleteUser = useCallback((userId) => {
-        setUsers((prev) => prev.filter((user) => user.id !== userId));
+        setUsers((prev) => {
+            const nextUsers = prev.filter((user) => user.id !== userId);
+            save('edu_users', nextUsers);
+            return nextUsers;
+        });
+        setCurrentUser((prev) => {
+            if (prev?.id !== userId) {
+                return prev;
+            }
+
+            save('edu_current_user', null);
+            return null;
+        });
     }, []);
 
     const findUserByEmail = useCallback((email) => (
-        users.find((user) => user.email.toLowerCase() === email.toLowerCase())
+        users.find((user) => normalizeAuthValue(user.email) === normalizeAuthValue(email))
     ), [users]);
 
     const validateUser = useCallback((identifier, password, role) => {
         const normalizedIdentifier = normalizeAuthValue(identifier);
         const normalizedPassword = String(password || '').trim();
+        const normalizedRole = role === 'admin' ? 'admin' : 'student';
 
         return users.find((user) => (
-            user.role === role &&
-            user.password === normalizedPassword &&
+            (user.role === normalizedRole) &&
+            String(user.password || '').trim() === normalizedPassword &&
             getUserLoginIdentifiers(user).includes(normalizedIdentifier)
-        ));
+        )) || null;
     }, [users]);
 
     const addNotification = useCallback((type, message, metadata = {}) => {

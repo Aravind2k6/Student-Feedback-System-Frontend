@@ -329,9 +329,6 @@ const Login = () => {
                                     required
                                 />
                             </div>
-                            <div style={{ marginTop: '0.45rem', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                                Create an account first if you do not have one yet.
-                            </div>
                         </div>
 
                         {/* Password */}

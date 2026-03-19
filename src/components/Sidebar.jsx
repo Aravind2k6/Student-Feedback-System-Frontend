@@ -8,6 +8,7 @@ const Sidebar = ({ role }) => {
 
     const studentLinks = [
         { name: 'Dashboard', path: '/student', icon: <LayoutDashboard size={18} />, end: true },
+        { name: 'Registered Courses', path: '/student/courses', icon: <BookOpen size={18} /> },
     ];
 
     const adminLinks = [
