@@ -11,7 +11,7 @@ const TYPE_COLORS = {
 
 const ManageForms = () => {
     const navigate = useNavigate();
-    const { forms, deleteForm, feedbacks, darkMode, toggleDarkMode } = useApp();
+    const { forms, deleteForm, resetAllData, feedbacks, darkMode, toggleDarkMode } = useApp();
 
     const [filter, setFilter] = useState('All');      // All | Active | Closed
     const [typeFilter, setTypeFilter] = useState('All Types');
@@ -99,9 +99,24 @@ const ManageForms = () => {
                         <h1 className="mf-title">Feedback Forms</h1>
                         <p className="mf-subtitle">{forms.length} total · {activeCount} active</p>
                     </div>
-                    <button className="mf-create-btn" onClick={() => navigate('/admin/create')}>
-                        <Plus size={16} /> Create Form
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button
+                            className="btn-ghost"
+                            onClick={() => {
+                                if (window.confirm('WARNING: This will delete ALL forms and ALL submissions forever! Are you sure?')) {
+                                    if (window.confirm('FINAL CONFIRMATION: Are you absolutely sure you want to clear everything?')) {
+                                        resetAllData();
+                                    }
+                                }
+                            }}
+                            style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', padding: '0.6rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
+                        >
+                            <Trash2 size={16} /> Clear All Data
+                        </button>
+                        <button className="mf-create-btn" onClick={() => navigate('/admin/create')}>
+                            <Plus size={16} /> Create Form
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filter & View Row */}

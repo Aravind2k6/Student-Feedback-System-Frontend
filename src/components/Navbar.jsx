@@ -24,7 +24,7 @@ const Navbar = ({ role, toggleSidebar }) => {
                 {/* Right side - User profile & Actions */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ textAlign: 'right', display: 'none', '@media (min-width: 640px)': { display: 'block' } }}>
+                        <div style={{ textAlign: 'right' }}>
                             <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{userName}</div>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{role === 'student' ? 'Student' : 'Admin'}</div>
                         </div>

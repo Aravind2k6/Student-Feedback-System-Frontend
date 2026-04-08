@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, Moon, Sun, PlusCircle, ClipboardList } from 'lucide-react';
+import { Search, Bell, Moon, Sun, PlusCircle, ClipboardList, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
-    const { forms, feedbacks, currentUser, courses, darkMode, toggleDarkMode } = useApp();
+    const { forms, feedbacks, currentUser, courses, darkMode, toggleDarkMode, deleteForm } = useApp();
     const [searchQuery, setSearchQuery] = useState('');
 
     const adminName = currentUser?.name || 'Admin';
@@ -54,7 +54,7 @@ const AdminDashboard = () => {
             topBorder: '#f59e0b',
         },
         {
-            label: 'Avg. Rating / 5',
+            label: 'Avg. Rating / 4',
             value: avgRating,
             sub: '▲ High satisfaction',
             subColor: '#a855f7',
@@ -195,11 +195,35 @@ const AdminDashboard = () => {
                                             <span className="admin-ov-resp-count">{count} responses</span>
                                         </div>
                                     </div>
-                                    <span className={`admin-ov-status-badge ${status === 'Active' ? 'status-active' :
-                                        status === 'Expired' ? 'status-expired' : 'status-draft'
-                                        }`}>
-                                        • {status}
-                                    </span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <span className={`admin-ov-status-badge ${status === 'Active' ? 'status-active' :
+                                            status === 'Expired' ? 'status-expired' : 'status-draft'
+                                            }`}>
+                                            • {status}
+                                        </span>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (window.confirm('Delete this form?')) deleteForm(form.id);
+                                            }}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                color: '#ef4444',
+                                                cursor: 'pointer',
+                                                padding: '4px',
+                                                borderRadius: '4px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            className="delete-hover-effect"
+                                            title="Delete Form"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                             );
                         })}

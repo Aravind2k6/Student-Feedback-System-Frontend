@@ -3,9 +3,9 @@ import { ClipboardList, CheckCircle, AlertCircle, Send, Award, Clock, Bell, Tras
 import { useApp } from '../../context/AppContext';
 
 const RatingWidget = ({ value, onChange, options }) => {
-    // If custom options are provided (length 4), use them, otherwise fallback to default labels
-    const labels = (options && options.length === 4)
-        ? ['', ...options]
+    const optionsArray = Array.isArray(options) ? options : (typeof options === 'string' ? options.split(',').map(s => s.trim()) : []);
+    const labels = (optionsArray.length === 4)
+        ? ['', ...optionsArray]
         : ['', 'Poor', 'Average', 'Good', 'Excellent'];
 
     return (
@@ -44,6 +44,7 @@ const RatingWidget = ({ value, onChange, options }) => {
 const StudentDashboard = () => {
     const {
         publishedForms, submitForm, currentUser, hasStudentSubmitted,
+        submittedFormIds,
         courses, releasedCourses, courseInstructors, availableInstructors, availableCourses,
         feedbacks,
         notifications, markAllRead, clearNotifications,
@@ -76,6 +77,8 @@ const StudentDashboard = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const submittedFormIdSet = useMemo(() => new Set(submittedFormIds), [submittedFormIds]);
+
     const isCourseReleased = (form) => {
         if (form.type !== 'Course') return true;
         const targetCourse = form.course || 
@@ -85,8 +88,12 @@ const StudentDashboard = () => {
     };
 
     const activeForms = useMemo(() =>
-        publishedForms.filter(f => isCourseReleased(f) && (!f.deadline || new Date(f.deadline) >= today)),
-        [publishedForms, releasedCourses, courses]
+        publishedForms.filter(f =>
+            !submittedFormIdSet.has(f.id)
+            && isCourseReleased(f)
+            && (!f.deadline || new Date(f.deadline) >= today)
+        ),
+        [publishedForms, submittedFormIdSet, releasedCourses, courses]
     );
 
     // Alert logic for deadlines within next 48 hours
@@ -103,8 +110,12 @@ const StudentDashboard = () => {
     const unreadCount = notifications.filter(n => !n.read).length;
 
     const expiredForms = useMemo(() =>
-        publishedForms.filter(f => isCourseReleased(f) && (f.deadline && new Date(f.deadline) < today)),
-        [publishedForms, releasedCourses, courses]
+        publishedForms.filter(f =>
+            !submittedFormIdSet.has(f.id)
+            && isCourseReleased(f)
+            && (f.deadline && new Date(f.deadline) < today)
+        ),
+        [publishedForms, submittedFormIdSet, releasedCourses, courses]
     );
     const currentForms = feedbackTab === 'active' ? activeForms : expiredForms;
 
@@ -113,8 +124,20 @@ const StudentDashboard = () => {
         return `fb-${selectedCampaign.id}-${selectedCourse}-${selectedInstructor}`.toLowerCase().replace(/\s+/g, '-');
     }, [selectedCampaign, selectedCourse, selectedInstructor]);
 
-    const isAlreadySubmitted = useMemo(() => {
-        return submissionKey ? hasStudentSubmitted(submissionKey) : false;
+    const [isAlreadySubmitted, setIsAlreadySubmitted] = useState(false);
+
+    useEffect(() => {
+        let isMounted = true;
+        const check = async () => {
+            if (submissionKey) {
+                const result = await hasStudentSubmitted(submissionKey);
+                if (isMounted) setIsAlreadySubmitted(result);
+            } else {
+                if (isMounted) setIsAlreadySubmitted(false);
+            }
+        };
+        check();
+        return () => { isMounted = false; };
     }, [submissionKey, hasStudentSubmitted]);
 
     const isCourseLocked = useMemo(() => {
@@ -158,10 +181,13 @@ const StudentDashboard = () => {
 
         const dynamicFields = selectedCampaign.fields || [];
         const missingRating = dynamicFields.some(f => {
+            const fid = f.id || f.fieldId;
+            const ftype = (f.type || f.fieldType || '').toLowerCase().trim();
+            
             if (!f.required) return false;
-            const val = dynamicRatings[f.id];
-            if (f.type === 'rating') return !val || val === 0;
-            if (f.type === 'checkbox') return (!val || val.length === 0);
+            const val = dynamicRatings[fid];
+            if (ftype === 'rating') return !val || val === 0;
+            if (ftype === 'checkbox') return (!val || val.length === 0);
             return !val || val === '';
         });
 
@@ -172,7 +198,8 @@ const StudentDashboard = () => {
 
         // Find overall rating field to map to primary rating
         const overallField = dynamicFields.find(f => f.label.toLowerCase().includes('overall'));
-        const overallRating = overallField ? dynamicRatings[overallField.id] : (rating || 0);
+        const overallFid = overallField ? (overallField.id || overallField.fieldId) : null;
+        const overallRating = overallFid ? (dynamicRatings[overallFid] || 0) : (rating || 0);
 
         // Submit using the unique key and pass data for Admin to see
         submitForm(submissionKey, {
@@ -181,21 +208,24 @@ const StudentDashboard = () => {
             instructor: selectedInstructor,
             rating: overallRating,
             dynamicRatings,
-            remarks
+            remarks: dynamicRatings['remarks'] || remarks || ''
+        }).then(success => {
+            if (success) {
+                setSubmitted(true);
+                setError('');
+                // Reset after 3 seconds
+                setTimeout(() => {
+                    setSubmitted(false);
+                    setSelectedCourse('');
+                    setSelectedInstructor('');
+                    setRating(0);
+                    setDynamicRatings({});
+                    setRemarks('');
+                }, 3000);
+            } else {
+                setError('Failed to submit feedback. Please check the console for details.');
+            }
         });
-
-        setSubmitted(true);
-        setError('');
-
-        // Reset after 3 seconds
-        setTimeout(() => {
-            setSubmitted(false);
-            setSelectedCourse('');
-            setSelectedInstructor('');
-            setRating(0);
-            setDynamicRatings({});
-            setRemarks('');
-        }, 3000);
     };
 
     const getAverage = (feedbackArray) => {
@@ -526,60 +556,67 @@ const StudentDashboard = () => {
                                         <>
                                             {selectedCampaign.fields && selectedCampaign.fields.length > 0 ? (
                                                 selectedCampaign.fields.map(field => {
+                                                    // Map both potential field name variants for maximum resilience
+                                                    const fid = field.id || field.fieldId;
+                                                    const ftype = (field.type || field.fieldType || '').toLowerCase().trim();
+                                                    
+                                                    // Handle options which might be a comma-separated string from backend
+                                                    const optionsArray = Array.isArray(field.options) ? field.options : (typeof field.options === 'string' ? field.options.split(',').map(s => s.trim()) : []);
+                                                    
                                                     // Skip "Full Name", "Student ID", "Email", "Department" as they come from profile
                                                     const profileFields = ['full name', 'student id', 'email', 'email address', 'department', 'course', 'course code', 'instructor name'];
                                                     if (profileFields.includes(field.label.toLowerCase())) return null;
 
                                                     return (
-                                                        <div key={field.id} style={{ marginBottom: '1.5rem' }}>
+                                                        <div key={fid} style={{ marginBottom: '1.5rem' }}>
                                                             <label className="form-label" style={{ marginBottom: '0.65rem', display: 'block' }}>
                                                                 {field.label} {field.required && <span style={{ color: 'var(--error)' }}>*</span>}
                                                             </label>
 
-                                                            {field.type === 'rating' && (
+                                                              {ftype === 'rating' && (
                                                                 <RatingWidget
-                                                                    value={dynamicRatings[field.id] || 0}
-                                                                    onChange={(val) => setDynamicRatings(prev => ({ ...prev, [field.id]: val }))}
+                                                                    value={dynamicRatings[fid] || 0}
+                                                                    onChange={(val) => setDynamicRatings(prev => ({ ...prev, [fid]: val }))}
                                                                     options={field.options}
                                                                 />
                                                             )}
 
-                                                            {(field.type === 'text' || field.type === 'email') && (
+                                                            {(ftype === 'text' || ftype === 'email') && (
                                                                 <input
-                                                                    type={field.type}
+                                                                    type={ftype}
                                                                     className="form-input"
                                                                     placeholder={field.placeholder}
-                                                                    value={dynamicRatings[field.id] || ''}
-                                                                    onChange={(e) => setDynamicRatings(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                                                    value={dynamicRatings[fid] || ''}
+                                                                    onChange={(e) => setDynamicRatings(prev => ({ ...prev, [fid]: e.target.value }))}
                                                                 />
                                                             )}
 
-                                                            {field.type === 'textarea' && (
+                                                            {ftype === 'textarea' && (
                                                                 <textarea
                                                                     className="form-input"
                                                                     style={{ minHeight: 80 }}
                                                                     placeholder={field.placeholder}
-                                                                    value={dynamicRatings[field.id] || ''}
-                                                                    onChange={(e) => setDynamicRatings(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                                                    value={dynamicRatings[fid] || ''}
+                                                                    onChange={(e) => setDynamicRatings(prev => ({ ...prev, [fid]: e.target.value }))}
                                                                 />
                                                             )}
 
-                                                            {field.type === 'yesno' && (
+                                                            {ftype === 'yesno' && (
                                                                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                                                                     {['Yes', 'No'].map(opt => (
                                                                         <button
                                                                             key={opt}
                                                                             type="button"
-                                                                            className={`btn-ghost ${dynamicRatings[field.id] === opt ? 'active' : ''}`}
+                                                                            className={`btn-ghost ${dynamicRatings[fid] === opt ? 'active' : ''}`}
                                                                             style={{
                                                                                 padding: '0.5rem 1.5rem',
                                                                                 borderRadius: 10,
-                                                                                background: dynamicRatings[field.id] === opt ? 'var(--accent-gradient)' : 'rgba(255,255,255,0.05)',
-                                                                                color: dynamicRatings[field.id] === opt ? '#fff' : 'var(--text-secondary)',
-                                                                                borderColor: dynamicRatings[field.id] === opt ? 'var(--accent-primary)' : 'var(--glass-border)',
+                                                                                background: dynamicRatings[fid] === opt ? 'var(--accent-gradient)' : 'rgba(255,255,255,0.05)',
+                                                                                color: dynamicRatings[fid] === opt ? '#fff' : 'var(--text-secondary)',
+                                                                                borderColor: dynamicRatings[fid] === opt ? 'var(--accent-primary)' : 'var(--glass-border)',
                                                                                 cursor: 'pointer'
                                                                             }}
-                                                                            onClick={() => setDynamicRatings(prev => ({ ...prev, [field.id]: opt }))}
+                                                                            onClick={() => setDynamicRatings(prev => ({ ...prev, [fid]: opt }))}
                                                                         >
                                                                             {opt}
                                                                         </button>
@@ -587,26 +624,26 @@ const StudentDashboard = () => {
                                                                 </div>
                                                             )}
 
-                                                            {field.type === 'select' && (
+                                                            {ftype === 'select' && (
                                                                 <select
                                                                     className="form-input"
-                                                                    value={dynamicRatings[field.id] || ''}
-                                                                    onChange={(e) => setDynamicRatings(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                                                    value={dynamicRatings[fid] || ''}
+                                                                    onChange={(e) => setDynamicRatings(prev => ({ ...prev, [fid]: e.target.value }))}
                                                                 >
                                                                     <option value="">Select an option...</option>
-                                                                    {(field.options || []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                                    {optionsArray.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                                 </select>
                                                             )}
-                                                            {field.type === 'radio' && (
+                                                            {ftype === 'radio' && (
                                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.4rem' }}>
-                                                                    {(field.options || []).map(opt => (
+                                                                    {optionsArray.map(opt => (
                                                                         <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                                                                             <input
                                                                                 type="radio"
-                                                                                name={field.id}
+                                                                                name={fid}
                                                                                 value={opt}
-                                                                                checked={dynamicRatings[field.id] === opt}
-                                                                                onChange={(e) => setDynamicRatings(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                                                                checked={dynamicRatings[fid] === opt}
+                                                                                onChange={(e) => setDynamicRatings(prev => ({ ...prev, [fid]: e.target.value }))}
                                                                                 style={{ accentColor: 'var(--accent-primary)', width: 16, height: 16 }}
                                                                             />
                                                                             {opt}
@@ -614,10 +651,10 @@ const StudentDashboard = () => {
                                                                     ))}
                                                                 </div>
                                                             )}
-                                                            {field.type === 'checkbox' && (
+                                                            {ftype === 'checkbox' && (
                                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.4rem' }}>
-                                                                    {(field.options || []).map(opt => {
-                                                                        const currentVals = dynamicRatings[field.id] || [];
+                                                                    {optionsArray.map(opt => {
+                                                                        const currentVals = dynamicRatings[fid] || [];
                                                                         return (
                                                                             <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                                                                                 <input
@@ -627,8 +664,8 @@ const StudentDashboard = () => {
                                                                                     onChange={(e) => {
                                                                                         const isChecked = e.target.checked;
                                                                                         setDynamicRatings(prev => {
-                                                                                            const existing = prev[field.id] || [];
-                                                                                            return { ...prev, [field.id]: isChecked ? [...existing, opt] : existing.filter(v => v !== opt) }
+                                                                                            const existing = prev[fid] || [];
+                                                                                            return { ...prev, [fid]: isChecked ? [...existing, opt] : existing.filter(v => v !== opt) }
                                                                                         });
                                                                                     }}
                                                                                     style={{ accentColor: 'var(--accent-primary)', width: 17, height: 17, borderRadius: 4 }}

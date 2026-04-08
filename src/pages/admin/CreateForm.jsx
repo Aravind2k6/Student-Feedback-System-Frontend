@@ -149,6 +149,8 @@ const CreateForm = () => {
 
     const [tab, setTab] = useState('editor'); // 'editor' | 'preview'
     const [success, setSuccess] = useState(false);
+    const [submitError, setSubmitError] = useState('');
+    const [isPublishing, setIsPublishing] = useState(false);
 
     const [meta, setMeta] = useState({
         title: '', description: '', courseCode: '', course: '', deadline: '',
@@ -170,13 +172,27 @@ const CreateForm = () => {
     const removeField = (id) => setFields(prev => prev.filter(f => f.id !== id));
     const updateField = (id, next) => setFields(prev => prev.map(f => f.id === id ? next : f));
 
-    const handlePublish = (e) => {
+    const handlePublish = async (e) => {
         e.preventDefault();
         if (!meta.title.trim()) return alert('Please enter a form title.');
         if (fields.length === 0) return alert('Please add at least one field.');
-        createForm({ ...meta, fields });
-        setSuccess(true);
-        setTimeout(() => navigate('/admin'), 2200);
+
+        setSubmitError('');
+        setIsPublishing(true);
+
+        try {
+            const createdForm = await createForm({ ...meta, fields, published: true });
+            if (!createdForm?.id) {
+                throw new Error('The backend did not return the created form.');
+            }
+
+            setSuccess(true);
+            setTimeout(() => navigate('/admin'), 2200);
+        } catch (err) {
+            setSubmitError(err.message || 'Failed to publish form.');
+        } finally {
+            setIsPublishing(false);
+        }
     };
 
     if (success) return (
@@ -305,11 +321,21 @@ const CreateForm = () => {
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid var(--glass-border)', paddingTop: '1.25rem' }}>
-                                <button type="button" className="btn-ghost" onClick={() => navigate('/admin')}>Cancel</button>
-                                <button type="submit" className="btn-primary" disabled={fields.length === 0} style={{ opacity: fields.length === 0 ? 0.4 : 1 }}>
-                                    <Send size={16} /> Publish Form
+                                <button type="button" className="btn-ghost" disabled={isPublishing} onClick={() => navigate('/admin')}>Cancel</button>
+                                <button
+                                    type="submit"
+                                    className="btn-primary"
+                                    disabled={fields.length === 0 || isPublishing}
+                                    style={{ opacity: fields.length === 0 || isPublishing ? 0.4 : 1 }}
+                                >
+                                    <Send size={16} /> {isPublishing ? 'Publishing...' : 'Publish Form'}
                                 </button>
                             </div>
+                            {submitError && (
+                                <div style={{ marginTop: '0.85rem', color: 'var(--error)', fontSize: '0.85rem', fontWeight: 600 }}>
+                                    {submitError}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </form>

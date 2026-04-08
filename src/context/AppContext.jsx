@@ -1,261 +1,442 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-const SEED_FORMS = [
-    {
-        id: 'campaign-seed-1',
-        title: 'FSAD Course & Instructor Evaluation',
-        description: 'Provide feedback on course quality and instructor performance.',
-        createdAt: '2026-02-20T10:00:00.000Z',
-        deadline: '2026-03-24',
-        published: true,
-        type: 'Course',
-        target: 'Full Stack Application Development',
-        course: 'FSAD',
-        fields: [
-            { id: 'f1', label: 'How well did the instructor explain the subject concepts?', type: 'rating', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
-            { id: 'f2', label: 'How clear were the lecture presentations?', type: 'rating', required: true, options: ['Very Clear', 'Clear', 'Somewhat Clear', 'Not Clear'] },
-            { id: 'f3', label: 'How useful were the study materials provided for the subject?', type: 'rating', required: true, options: ['Very Useful', 'Useful', 'Slightly Useful', 'Not Useful'] },
-            { id: 'f4', label: 'How effectively were doubts and questions addressed during the class?', type: 'rating', required: true, options: ['Very Effectively', 'Effectively', 'Moderately', 'Not Effectively'] },
-            { id: 'f5', label: 'Overall, how would you rate this subject?', type: 'rating', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
-        ],
-    },
-    {
-        id: 'campaign-seed-2',
-        title: 'Course Quality Evaluation - DBMS',
-        description: 'End of semester course quality evaluation for Database Management Systems.',
-        createdAt: '2026-02-01T10:00:00.000Z',
-        deadline: '2026-03-25',
-        published: true,
-        type: 'Course',
-        target: 'Database Management Systems',
-        course: 'DBMS',
-        fields: [
-            { id: 'f1', label: 'How well did the instructor explain the subject concepts?', type: 'rating', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
-            { id: 'f2', label: 'How clear were the lecture presentations?', type: 'rating', required: true, options: ['Very Clear', 'Clear', 'Somewhat Clear', 'Not Clear'] },
-            { id: 'f3', label: 'How useful were the study materials provided for the subject?', type: 'rating', required: true, options: ['Very Useful', 'Useful', 'Slightly Useful', 'Not Useful'] },
-            { id: 'f4', label: 'How effectively were doubts and questions addressed during the class?', type: 'rating', required: true, options: ['Very Effectively', 'Effectively', 'Moderately', 'Not Effectively'] },
-            { id: 'f5', label: 'Overall, how would you rate this subject?', type: 'rating', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
-        ],
-    },
-    {
-        id: 'campaign-seed-4',
-        title: 'Institutional Services Feedback',
-        description: 'Share your experience with institutional support and services.',
-        createdAt: '2026-02-05T10:00:00.000Z',
-        deadline: '2026-03-30',
-        published: true,
-        type: 'Institution',
-        target: 'All Students',
-        fields: [
-            { id: 'f1', label: 'How well did the instructor explain the subject concepts?', type: 'rating', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
-            { id: 'f2', label: 'How clear were the lecture presentations?', type: 'rating', required: true, options: ['Very Clear', 'Clear', 'Somewhat Clear', 'Not Clear'] },
-            { id: 'f3', label: 'How useful were the study materials provided for the subject?', type: 'rating', required: true, options: ['Very Useful', 'Useful', 'Slightly Useful', 'Not Useful'] },
-            { id: 'f4', label: 'How effectively were doubts and questions addressed during the class?', type: 'rating', required: true, options: ['Very Effectively', 'Effectively', 'Moderately', 'Not Effectively'] },
-            { id: 'f5', label: 'Overall, how would you rate this subject?', type: 'rating', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
-        ],
-    },
-    {
-        id: 'campaign-seed-5',
-        title: 'Advanced Feedback Survey - OS',
-        description: 'Comprehensive evaluation for Operating Systems.',
-        createdAt: '2026-02-20T10:00:00.000Z',
-        deadline: '2026-04-15',
-        published: true,
-        type: 'Course',
-        target: 'Operating Systems',
-        course: 'OS',
-        fields: [
-            { id: 'f1', label: 'How well did the instructor explain the subject concepts?', type: 'rating', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
-            { id: 'f2', label: 'How clear were the lecture presentations?', type: 'rating', required: true, options: ['Very Clear', 'Clear', 'Somewhat Clear', 'Not Clear'] },
-            { id: 'f3', label: 'How useful were the study materials provided for the subject?', type: 'rating', required: true, options: ['Very Useful', 'Useful', 'Slightly Useful', 'Not Useful'] },
-            { id: 'f4', label: 'How effectively were doubts and questions addressed during the class?', type: 'rating', required: true, options: ['Very Effectively', 'Effectively', 'Moderately', 'Not Effectively'] },
-            { id: 'f5', label: 'Overall, how would you rate this subject?', type: 'rating', required: true, options: ['Excellent', 'Good', 'Average', 'Poor'] },
-        ],
-    },
-];
+const isLocalFrontendHost = typeof window !== 'undefined'
+    && /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+const DEFAULT_API_BASE_URL = isLocalFrontendHost ? '/api' : '';
+const MISSING_API_BASE_URL_MESSAGE = 'VITE_API_BASE_URL is not set for this deployed frontend. Set it to your backend API URL, for example https://your-backend-domain/api.';
+const NETWORK_ERROR_MESSAGE = 'Cannot reach the backend. Make sure VITE_API_BASE_URL points to your deployed backend API and that the backend is running.';
 
-const DEFAULT_COURSES = [
-    { name: 'FSAD', code: '24SDC02E', credits: 4, courseName: 'Full Stack Application Development', instructor: 'Ramu', released: true },
-    { name: 'CIS', code: '24CS220A', credits: 3, courseName: 'Cloud Infrastructure and Services', instructor: 'Ganesh', released: true },
-    { name: 'DBMS', code: '24DBMS301', credits: 4, courseName: 'Database Management Systems', instructor: 'Abhinav', released: true },
-    { name: 'OS', code: '24OSS401', credits: 3, courseName: 'Operating Systems', instructor: 'Raghavendra', released: true },
-    { name: 'AIML', code: '24AML501', credits: 3, courseName: 'Artificial Intelligence', instructor: 'Sai', released: true },
-];
-
-const SEED_NOTIFICATIONS = [
-    {
-        id: 'notif-seed-1',
-        type: 'new_campaign',
-        message: 'New feedback form published: "Mid-Semester Course Feedback"',
-        metadata: { formId: 'campaign-seed-1' },
-        timestamp: '2026-03-17T10:00:00.000Z',
-        read: false,
-    },
-    {
-        id: 'notif-seed-2',
-        type: 'alert',
-        message: 'Reminder: The "End-Semester Evaluation" deadline is approaching!',
-        metadata: { formId: 'campaign-seed-2' },
-        timestamp: '2026-03-17T09:00:00.000Z',
-        read: true,
-    },
-];
-
-const SEED_USERS = [];
-
-const APP_STATE_VERSION = 'v4';
-const APP_STATE_VERSION_KEY = 'edu_app_state_version';
-const STORAGE_KEYS_TO_RESET = [
-    'edu_forms',
-    'edu_forms_version',
-    'edu_courses',
-    'edu_dark_mode',
-    'edu_notifications',
-    'edu_feedbacks',
-    'edu_submission_counts',
-    'edu_student_submitted',
-];
-
-const DEFAULT_APP_STATE = {
-    forms: SEED_FORMS,
-    courses: DEFAULT_COURSES,
-    currentUser: null,
-    darkMode: false,
-    notifications: SEED_NOTIFICATIONS,
-    users: SEED_USERS,
+const normalizeApiBaseUrl = (value) => {
+    if (!value) return DEFAULT_API_BASE_URL;
+    return value.endsWith('/') ? value.slice(0, -1) : value;
 };
 
-const load = (key, fallback) => {
+const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
+
+const buildApiUrl = (path) => {
+    if (!API_BASE_URL) {
+        throw new Error(MISSING_API_BASE_URL_MESSAGE);
+    }
+    return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+};
+
+const isNetworkError = (err) => {
+    const message = err?.message ?? '';
+    return err instanceof TypeError || /Failed to fetch|NetworkError|Load failed/i.test(message);
+};
+
+const apiFetch = async (path, options) => {
     try {
-        const value = localStorage.getItem(key);
-        return value ? JSON.parse(value) : fallback;
-    } catch {
-        return fallback;
-    }
-};
-
-const normalizeAuthValue = (value) => String(value || '').trim().toLowerCase();
-
-const buildUsernameFromProfile = (name, email) => {
-    const usernameFromName = normalizeAuthValue(name).replace(/[^a-z0-9]+/g, '');
-    if (usernameFromName) {
-        return usernameFromName;
-    }
-
-    const normalizedEmail = normalizeAuthValue(email);
-    if (normalizedEmail) {
-        return normalizedEmail.split('@')[0];
-    }
-
-    return '';
-};
-
-const normalizeUserRecord = (user) => {
-    if (!user || typeof user !== 'object') {
-        return null;
-    }
-
-    const normalizedEmail = normalizeAuthValue(user.email);
-    const normalizedUsername = normalizeAuthValue(
-        user.username || buildUsernameFromProfile(user.name, user.email)
-    );
-    const normalizedRole = user.role === 'admin' ? 'admin' : 'student';
-    const normalizedPassword = typeof user.password === 'string'
-        ? user.password.trim()
-        : String(user.password || '').trim();
-
-    if (!normalizedEmail && !normalizedUsername) {
-        return null;
-    }
-
-    return {
-        ...user,
-        id: String(user.id || `${normalizedRole}-${normalizedUsername || normalizedEmail || 'user'}`),
-        name: String(user.name || '').trim(),
-        email: normalizedEmail,
-        username: normalizedUsername,
-        password: normalizedPassword,
-        role: normalizedRole,
-    };
-};
-
-const normalizeUserCollection = (users) => {
-    if (!Array.isArray(users)) {
-        return [];
-    }
-
-    const seenKeys = new Set();
-
-    return users.reduce((acc, user) => {
-        const normalizedUser = normalizeUserRecord(user);
-
-        if (!normalizedUser) {
-            return acc;
+        return await fetch(buildApiUrl(path), options);
+    } catch (err) {
+        if (isNetworkError(err)) {
+            throw new Error(NETWORK_ERROR_MESSAGE);
         }
-
-        const userKey = `${normalizedUser.role}:${normalizedUser.email || normalizedUser.username}`;
-        if (seenKeys.has(userKey)) {
-            return acc;
-        }
-
-        seenKeys.add(userKey);
-        acc.push(normalizedUser);
-        return acc;
-    }, []);
+        throw err;
+    }
 };
 
-const getUserLoginIdentifiers = (user) => (
-    [...new Set([
-        user.username,
-        user.email,
-        buildUsernameFromProfile(user.name, user.email),
-    ].map(normalizeAuthValue).filter(Boolean))]
-);
+const readErrorMessage = async (res, fallbackMessage) => {
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+        try {
+            const data = await res.json();
+            if (typeof data?.error === 'string' && data.error.trim()) return data.error;
+            if (typeof data?.message === 'string' && data.message.trim()) return data.message;
+        } catch {
+            return fallbackMessage;
+        }
+    }
 
-const save = (key, value) => {
     try {
-        localStorage.setItem(key, JSON.stringify(value));
+        const text = await res.text();
+        return text || fallbackMessage;
     } catch {
-        // Ignore storage write failures.
-    }
-};
-
-const getInitialAppState = () => {
-    try {
-        const preservedUsers = normalizeUserCollection(load('edu_users', DEFAULT_APP_STATE.users));
-        const preservedCurrentUser = normalizeUserRecord(load('edu_current_user', DEFAULT_APP_STATE.currentUser));
-        const storedVersion = localStorage.getItem(APP_STATE_VERSION_KEY);
-
-        if (storedVersion !== APP_STATE_VERSION) {
-            STORAGE_KEYS_TO_RESET.forEach((key) => localStorage.removeItem(key));
-            save('edu_forms', DEFAULT_APP_STATE.forms);
-            save('edu_courses', DEFAULT_APP_STATE.courses);
-            save('edu_dark_mode', DEFAULT_APP_STATE.darkMode);
-            save('edu_notifications', DEFAULT_APP_STATE.notifications);
-            save('edu_current_user', preservedCurrentUser);
-            save('edu_users', preservedUsers);
-            localStorage.setItem(APP_STATE_VERSION_KEY, APP_STATE_VERSION);
-        }
-
-        return {
-            forms: load('edu_forms', DEFAULT_APP_STATE.forms),
-            courses: load('edu_courses', DEFAULT_APP_STATE.courses),
-            currentUser: normalizeUserRecord(load('edu_current_user', preservedCurrentUser)),
-            darkMode: load('edu_dark_mode', DEFAULT_APP_STATE.darkMode),
-            notifications: load('edu_notifications', DEFAULT_APP_STATE.notifications),
-            users: normalizeUserCollection(load('edu_users', preservedUsers)),
-        };
-    } catch {
-        return DEFAULT_APP_STATE;
+        return fallbackMessage;
     }
 };
 
 const AppContext = createContext(null);
 
 export const AppProvider = ({ children }) => {
-    const initialAppState = useMemo(() => getInitialAppState(), []);
-    const [forms, setForms] = useState(() => initialAppState.forms);
-    const [courses, setCourses] = useState(() => initialAppState.courses);
+    const [forms, setForms] = useState([]);
+    const [publishedForms, setPublishedForms] = useState([]);
+    const [submittedFormIds, setSubmittedFormIds] = useState([]);
+    const [courses, setCourses] = useState([]);
+    const [currentUser, setCurrentUser] = useState(() => {
+        const stored = localStorage.getItem('edu_current_user');
+        return stored ? JSON.parse(stored) : null;
+    });
+    const [darkMode, setDarkMode] = useState(() => {
+        const stored = localStorage.getItem('edu_dark_mode');
+        return stored ? JSON.parse(stored) === true : false;
+    });
+    const [notifications, setNotifications] = useState([]);
+    const [feedbacks, setFeedbacks] = useState([]);
+    const [submissionCounts, setSubmissionCounts] = useState({});
+    const [stats, setStats] = useState({ totalForms: 0, totalSubmissions: 0, totalUsers: 0 });
+
+    const fetchInitialData = useCallback(async () => {
+        try {
+            const [coursesRes, formsRes, publishedRes, statsRes] = await Promise.all([
+                apiFetch('/courses'),
+                apiFetch('/forms'),
+                apiFetch('/forms/published'),
+                apiFetch('/admin/stats')
+            ]);
+
+            if (coursesRes.ok) setCourses(await coursesRes.json());
+            if (formsRes.ok) setForms(await formsRes.json());
+            if (publishedRes.ok) setPublishedForms(await publishedRes.json());
+            if (statsRes.ok) setStats(await statsRes.json());
+        } catch (err) {
+            console.error('Failed to fetch initial data:', err);
+        }
+    }, []);
+
+    const fetchNotifications = useCallback(async () => {
+        if (!currentUser?.id) return;
+        try {
+            const res = await apiFetch(`/notifications?userId=${currentUser.id}`);
+            if (res.ok) setNotifications(await res.json());
+        } catch (err) {
+            console.error('Failed to fetch notifications:', err);
+        }
+    }, [currentUser]);
+
+    const fetchStudentSubmissions = useCallback(async () => {
+        if (!currentUser?.id || currentUser?.role !== 'student') {
+            setSubmittedFormIds([]);
+            return;
+        }
+
+        try {
+            const res = await apiFetch(`/submissions/student/${currentUser.id}`);
+            if (res.ok) {
+                const submissions = await res.json();
+                setSubmittedFormIds([
+                    ...new Set(
+                        submissions
+                            .map((submission) => submission.formId)
+                            .filter(Boolean)
+                    )
+                ]);
+            }
+        } catch (err) {
+            console.error('Failed to fetch student submissions:', err);
+        }
+    }, [currentUser]);
+
+    const fetchFeedbacks = useCallback(async () => {
+        const role = currentUser?.role?.toLowerCase();
+        if (!currentUser?.id || role !== 'admin') {
+            console.log('fetchFeedbacks: User is not admin, clearing feedbacks.');
+            setFeedbacks([]);
+            return;
+        }
+
+        console.log('fetchFeedbacks: Fetching all submissions for admin...');
+
+        try {
+            const url = `${API_BASE_URL}/submissions`;
+            console.log(`fetchFeedbacks: Calling URL -> ${url}`);
+            const res = await fetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                console.log(`fetchFeedbacks: Successfully fetched ${data.length} submissions.`);
+                setFeedbacks(data);
+            } else {
+                console.error('fetchFeedbacks: Failed to fetch submissions. Status:', res.status);
+            }
+        } catch (err) {
+            console.error('Failed to fetch feedbacks:', err);
+        }
+    }, [currentUser]);
+
+    useEffect(() => {
+        fetchInitialData();
+    }, [fetchInitialData]);
+
+    useEffect(() => {
+        fetchNotifications();
+    }, [fetchNotifications]);
+
+    useEffect(() => {
+        const role = currentUser?.role?.toLowerCase();
+        if (role === 'admin') {
+            fetchFeedbacks();
+        } else if (role === 'student') {
+            fetchStudentSubmissions();
+        }
+    }, [currentUser, fetchFeedbacks, fetchStudentSubmissions]);
+
+    useEffect(() => {
+        if (darkMode) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+        }
+        localStorage.setItem('edu_dark_mode', JSON.stringify(darkMode));
+    }, [darkMode]);
+
+    const toggleDarkMode = useCallback(() => {
+        setDarkMode((prev) => !prev);
+    }, []);
+
+    const loginUser = useCallback(async (credentials) => {
+        try {
+            const res = await apiFetch('/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(credentials)
+            });
+            if (res.ok) {
+                const user = await res.json();
+                setCurrentUser(user);
+                localStorage.setItem('edu_current_user', JSON.stringify(user));
+                // Immediately refresh data for the logged in user
+                fetchInitialData();
+                return user;
+            }
+            throw new Error(await readErrorMessage(res, 'Login failed'));
+        } catch (err) {
+            throw err;
+        }
+    }, [fetchInitialData]);
+
+    const logoutUser = useCallback(() => {
+        setCurrentUser(null);
+        setSubmittedFormIds([]);
+        localStorage.removeItem('edu_current_user');
+    }, []);
+
+    const registerUser = useCallback(async (userData) => {
+        try {
+            const res = await apiFetch('/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+            if (res.ok) return await res.json();
+            throw new Error(await readErrorMessage(res, 'Registration failed'));
+        } catch (err) {
+            throw err;
+        }
+    }, []);
+
+    const forgotPassword = useCallback(async (email) => {
+        try {
+            const res = await apiFetch('/auth/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            if (res.ok) return await res.json();
+            throw new Error(await readErrorMessage(res, 'Failed to request reset link'));
+        } catch (err) {
+            throw err;
+        }
+    }, []);
+
+    const resetPassword = useCallback(async (token, newPassword) => {
+        try {
+            const res = await apiFetch('/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, newPassword })
+            });
+            if (res.ok) return await res.json();
+            throw new Error(await readErrorMessage(res, 'Failed to reset password'));
+        } catch (err) {
+            throw err;
+        }
+    }, []);
+
+    const toggleCourseRelease = useCallback(async (courseName) => {
+        try {
+            const res = await apiFetch(`/courses/${courseName}/release`, {
+                method: 'PATCH'
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setCourses(prev => prev.map(c => c.name === courseName ? updated : c));
+            }
+        } catch (err) {
+            console.error('Failed to toggle release:', err);
+        }
+    }, []);
+
+    const createForm = useCallback(async (formData) => {
+        const normalizedCourse = (formData.course || '').trim();
+        const normalizedTarget = (formData.target || normalizedCourse || 'All Students').trim();
+        const payload = {
+            title: (formData.title || '').trim(),
+            description: formData.description || '',
+            deadline: formData.deadline,
+            published: formData.published ?? true,
+            type: formData.type || (normalizedCourse ? 'Course' : 'Institution'),
+            target: normalizedTarget,
+            course: normalizedCourse || null,
+            fields: (formData.fields || []).map((field) => ({
+                id: field.id,
+                label: field.label,
+                type: field.type,
+                required: field.required ?? false,
+                options: Array.isArray(field.options)
+                    ? field.options.map((option) => option.trim()).filter(Boolean)
+                    : field.options
+            }))
+        };
+
+        try {
+            const res = await apiFetch('/forms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                throw new Error(await readErrorMessage(res, 'Failed to create form'));
+            }
+
+            const newForm = await res.json();
+            setForms(prev => [newForm, ...prev]);
+            if (newForm.published) {
+                setPublishedForms(prev => [newForm, ...prev]);
+            }
+            fetchInitialData();
+            return newForm;
+        } catch (err) {
+            console.error('Failed to create form:', err);
+            throw err;
+        }
+    }, [fetchInitialData]);
+
+    const deleteForm = useCallback(async (id) => {
+        try {
+            console.log(`deleteForm: Attempting to delete form ID: ${id}`);
+            const res = await apiFetch(`/forms/${id}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                setForms(prev => prev.filter(f => f.id !== id));
+                setPublishedForms(prev => prev.filter(f => f.id !== id));
+                alert('Form deleted successfully.');
+                fetchInitialData();
+            } else {
+                const errorData = await res.json().catch(() => ({}));
+                console.error('deleteForm: Failed to delete form. Status:', res.status, errorData);
+                alert(`Failed to delete form. (Status: ${res.status})`);
+            }
+        } catch (err) {
+            console.error('Failed to delete form:', err);
+            alert('An error occurred while trying to delete the form.');
+        }
+    }, [fetchInitialData]);
+
+    const resetAllData = useCallback(async () => {
+        try {
+            console.warn('AppContext: Requesting SYSTEM RESET...');
+            const res = await apiFetch('/forms/reset-all', {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                setForms([]);
+                setPublishedForms([]);
+                setFeedbacks([]);
+                alert('System Reset Successful! All forms and submissions have been cleared.');
+                fetchInitialData();
+            } else {
+                alert('Failed to reset system. Status: ' + res.status);
+            }
+        } catch (err) {
+            console.error('Failed to reset data:', err);
+            alert('An error occurred during system reset.');
+        }
+    }, [fetchInitialData]);
+
+    const submitForm = useCallback(async (submissionKey, feedbackData) => {
+        if (!currentUser?.id) return;
+        try {
+            const payload = {
+                submissionKey,
+                formId: feedbackData.formId,
+                studentId: currentUser.id,
+                course: feedbackData.course,
+                instructor: feedbackData.instructor,
+                rating: feedbackData.rating,
+                dynamicRatings: feedbackData.dynamicRatings,
+                remarks: feedbackData.remarks
+            };
+            console.log('submitForm: Payload being sent:', payload);
+            const res = await apiFetch('/submissions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            console.log('submitForm: Server responded with status:', res.status);
+
+            if (res.ok) {
+                const data = await res.json();
+                console.log('submitForm: Success! Data:', data);
+                if (feedbackData.formId) {
+                    setSubmittedFormIds((prev) =>
+                        prev.includes(feedbackData.formId) ? prev : [...prev, feedbackData.formId]
+                    );
+                }
+                fetchInitialData(); // Update submission counts
+                if (currentUser?.role === 'admin') {
+                    fetchFeedbacks();
+                }
+                return true;
+            } else {
+                const errData = await res.json().catch(() => ({}));
+                console.error('submitForm: Request failed with error:', errData);
+                return false;
+            }
+        } catch (err) {
+            console.error('submitForm: Unexpected error:', err);
+            return false;
+        }
+    }, [currentUser, fetchInitialData, fetchFeedbacks]);
+
+    const hasStudentSubmitted = useCallback(async (submissionKey) => {
+        try {
+            const res = await apiFetch(`/submissions/check?key=${submissionKey}`);
+            if (res.ok) {
+                const data = await res.json();
+                return data.submitted;
+            }
+        } catch (err) {
+            console.error('Failed to check submission:', err);
+        }
+        return false;
+    }, []);
+
+    const markAllRead = useCallback(async () => {
+        if (!currentUser?.id) return;
+        try {
+            await apiFetch(`/notifications/read-all?userId=${currentUser.id}`, {
+                method: 'PATCH'
+            });
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        } catch (err) {
+            console.error('Failed to mark all read:', err);
+        }
+    }, [currentUser]);
+
+    const clearNotifications = useCallback(async () => {
+        if (!currentUser?.id) return;
+        try {
+            await apiFetch(`/notifications?userId=${currentUser.id}`, {
+                method: 'DELETE'
+            });
+            setNotifications([]);
+        } catch (err) {
+            console.error('Failed to clear notifications:', err);
+        }
+    }, [currentUser]);
 
     const courseInstructors = useMemo(() => {
         const mapping = {};
@@ -273,16 +454,6 @@ export const AppProvider = ({ children }) => {
         [courses]
     );
 
-    const toggleCourseRelease = useCallback((courseName) => {
-        setCourses((prev) => prev.map((course) => (
-            course.name === courseName ? { ...course, released: !course.released } : course
-        )));
-    }, []);
-
-    const [feedbacks, setFeedbacks] = useState([]);
-    const [submissionCounts, setSubmissionCounts] = useState({ 'fb-fsad-ramu': 12, 'fb-cis-ganesh': 8 });
-    const [submittedByStudent, setSubmittedByStudent] = useState({});
-
     const availableInstructors = useMemo(
         () => [...new Set(courses.map((course) => course.instructor))],
         [courses]
@@ -293,209 +464,26 @@ export const AppProvider = ({ children }) => {
         [courses]
     );
 
-    const [currentUser, setCurrentUser] = useState(() => initialAppState.currentUser);
-    const [darkMode, setDarkMode] = useState(() => initialAppState.darkMode);
-
-    useEffect(() => {
-        if (darkMode) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-            document.documentElement.removeAttribute('data-theme');
-        }
-        save('edu_dark_mode', darkMode);
-    }, [darkMode]);
-
-    const toggleDarkMode = useCallback(() => {
-        setDarkMode((prev) => !prev);
-    }, []);
-
-    useEffect(() => {
-        try {
-            localStorage.removeItem('edu_feedbacks');
-            localStorage.removeItem('edu_submission_counts');
-            localStorage.removeItem('edu_student_submitted');
-        } catch {
-            // Ignore storage cleanup failures.
-        }
-    }, []);
-
-    const [notifications, setNotifications] = useState(() => initialAppState.notifications);
-    const [users, setUsers] = useState(() => initialAppState.users);
-
-    useEffect(() => { save('edu_forms', forms); }, [forms]);
-    useEffect(() => { save('edu_courses', courses); }, [courses]);
-    useEffect(() => { save('edu_current_user', currentUser); }, [currentUser]);
-    useEffect(() => { save('edu_users', users); }, [users]);
-    useEffect(() => { save('edu_notifications', notifications); }, [notifications]);
-
-    const loginUser = useCallback((user) => {
-        const normalizedUser = normalizeUserRecord(user);
-        setCurrentUser(normalizedUser);
-        save('edu_current_user', normalizedUser);
-    }, []);
-
-    const logoutUser = useCallback(() => {
-        setCurrentUser(null);
-        save('edu_current_user', null);
-    }, []);
-
-    const registerUser = useCallback((userData) => {
-        const newUser = normalizeUserRecord({
-            ...userData,
-            id: userData.id || `user-${Date.now()}`,
-        });
-
-        if (!newUser) {
-            return null;
-        }
-
-        setUsers((prev) => {
-            const nextUsers = [
-                ...prev.filter((user) => !(
-                    user.id === newUser.id ||
-                    (user.role === newUser.role && normalizeAuthValue(user.email) === newUser.email)
-                )),
-                newUser,
-            ];
-            save('edu_users', nextUsers);
-            return nextUsers;
-        });
-        return newUser;
-    }, []);
-
-    const deleteUser = useCallback((userId) => {
-        setUsers((prev) => {
-            const nextUsers = prev.filter((user) => user.id !== userId);
-            save('edu_users', nextUsers);
-            return nextUsers;
-        });
-        setCurrentUser((prev) => {
-            if (prev?.id !== userId) {
-                return prev;
-            }
-
-            save('edu_current_user', null);
-            return null;
-        });
-    }, []);
-
-    const findUserByEmail = useCallback((email) => (
-        users.find((user) => normalizeAuthValue(user.email) === normalizeAuthValue(email))
-    ), [users]);
-
-    const validateUser = useCallback((identifier, password, role) => {
-        const normalizedIdentifier = normalizeAuthValue(identifier);
-        const normalizedPassword = String(password || '').trim();
-        const normalizedRole = role === 'admin' ? 'admin' : 'student';
-
-        return users.find((user) => (
-            (user.role === normalizedRole) &&
-            String(user.password || '').trim() === normalizedPassword &&
-            getUserLoginIdentifiers(user).includes(normalizedIdentifier)
-        )) || null;
-    }, [users]);
-
-    const addNotification = useCallback((type, message, metadata = {}) => {
-        const newNotification = {
-            id: `notif-${Date.now()}`,
-            type,
-            message,
-            metadata,
-            timestamp: new Date().toISOString(),
-            read: false,
-        };
-        setNotifications((prev) => [newNotification, ...prev].slice(0, 20));
-    }, []);
-
-    const markAllRead = useCallback(() => {
-        setNotifications((prev) => prev.map((notification) => ({ ...notification, read: true })));
-    }, []);
-
-    const clearNotifications = useCallback(() => {
-        setNotifications([]);
-    }, []);
-
-    const createForm = useCallback((formData) => {
-        const newForm = {
-            ...formData,
-            id: `form-${Date.now()}`,
-            createdAt: new Date().toISOString(),
-            published: true,
-        };
-        setForms((prev) => [newForm, ...prev]);
-        addNotification('new_campaign', `New feedback form published: "${newForm.title}"`, { formId: newForm.id });
-        return newForm.id;
-    }, [addNotification]);
-
-    const deleteForm = useCallback((id) => {
-        setForms((prev) => prev.filter((form) => form.id !== id));
-        setSubmissionCounts((prev) => {
-            const next = { ...prev };
-            delete next[id];
-            return next;
-        });
-    }, []);
-
-    const submitForm = useCallback((submissionKey, feedbackData) => {
-        if (!submissionKey || !currentUser?.id) {
-            return;
-        }
-
-        setSubmissionCounts((prev) => ({
-            ...prev,
-            [submissionKey]: (prev[submissionKey] || 0) + 1,
-        }));
-
-        if (feedbackData) {
-            setFeedbacks((prev) => [
-                {
-                    id: `fb-${Date.now()}`,
-                    ...feedbackData,
-                    timestamp: new Date().toISOString(),
-                },
-                ...prev,
-            ]);
-        }
-
-        setSubmittedByStudent((prev) => {
-            const userKey = currentUser.id;
-            const existing = Array.isArray(prev[userKey]) ? prev[userKey] : [];
-            return {
-                ...prev,
-                [userKey]: [...new Set([...existing, submissionKey])],
-            };
-        });
-    }, [currentUser]);
-
-    const hasStudentSubmitted = useCallback((submissionKey) => {
-        if (!currentUser?.id) {
-            return false;
-        }
-        const submittedKeys = submittedByStudent[currentUser.id] || [];
-        return submittedKeys.includes(submissionKey);
-    }, [currentUser, submittedByStudent]);
-
-    const totalForms = forms.length;
-    const totalSubmissions = Object.values(submissionCounts).reduce((sum, count) => sum + count, 0);
-    const publishedForms = forms.filter((form) => form.published);
-
     return (
         <AppContext.Provider
             value={{
                 forms,
                 publishedForms,
+                submittedFormIds,
                 courses,
                 releasedCourses,
                 toggleCourseRelease,
                 availableCourses,
                 availableInstructors,
                 courseInstructors,
-                feedbacks,
+                feedbacks, // Use state instead of hardcoded empty array
                 submissionCounts,
-                totalForms,
-                totalSubmissions,
+                totalForms: stats.totalForms,
+                totalSubmissions: stats.totalSubmissions,
+                publishedFormsCount: stats.publishedForms,
                 createForm,
                 deleteForm,
+                resetAllData,
                 submitForm,
                 hasStudentSubmitted,
                 darkMode,
@@ -503,14 +491,12 @@ export const AppProvider = ({ children }) => {
                 currentUser,
                 loginUser,
                 logoutUser,
-                users,
-                registerUser,
-                deleteUser,
-                findUserByEmail,
-                validateUser,
                 notifications,
                 markAllRead,
                 clearNotifications,
+                registerUser,
+                forgotPassword,
+                resetPassword,
             }}
         >
             {children}

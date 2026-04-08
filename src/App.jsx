@@ -15,6 +15,7 @@ import ManageForms from './pages/admin/ManageForms';
 import Courses from './pages/admin/Courses';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ResetPassword from './pages/ResetPassword';
 
 const AdminNavbar = () => {
   const { darkMode, toggleDarkMode } = useApp();
@@ -73,6 +74,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route
             path="/student"

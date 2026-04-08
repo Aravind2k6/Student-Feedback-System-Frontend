@@ -34,7 +34,7 @@ const AnalyzeFeedback = () => {
         if (feedbacks.length === 0) return alert('No feedback data available to export.');
 
         // Get all unique keys from feedback objects (including dynamic fields)
-        const headers = ['id', 'course', 'instructor', 'rating', 'remarks', 'timestamp'];
+        const headers = ['id', 'course', 'instructor', 'rating', 'remarks', 'submittedAt'];
 
         // Add headers for dynamic ratings if they exist
         const dynamicKeys = new Set();
@@ -228,7 +228,7 @@ const AnalyzeFeedback = () => {
                             <div key={f.id} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
                                     <div style={{ color: 'var(--accent-primary)', fontWeight: 700, fontSize: '0.85rem' }}>{f.course} — {f.instructor}</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{new Date(f.timestamp).toLocaleString()}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{new Date(f.submittedAt).toLocaleString()}</div>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <span style={{ fontWeight: 800, color: 'var(--accent-secondary)' }}>{f.rating}</span>
@@ -251,7 +251,7 @@ const AnalyzeFeedback = () => {
                             <div key={f.id} style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '1px solid var(--glass-border)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.75rem' }}>
                                     <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{f.course} — {f.instructor}</span>
-                                    <span style={{ color: 'var(--text-muted)' }}>{new Date(f.timestamp).toLocaleDateString()}</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>{new Date(f.submittedAt).toLocaleDateString()}</span>
                                 </div>
                                 <div style={{ position: 'relative', paddingLeft: '1.5rem' }}>
                                     <span style={{ position: 'absolute', left: 0, top: -5, fontSize: '1.5rem', color: 'var(--accent-secondary)', opacity: 0.4 }}>"</span>

@@ -5,12 +5,24 @@ import { useApp } from '../context/AppContext';
 
 /* ── Forgot Password Modal ─────────────────────────────── */
 const ForgotModal = ({ onClose }) => {
+    const { forgotPassword } = useApp();
     const [email, setEmail] = useState('');
     const [sent, setSent] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [err, setErr] = useState('');
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setSent(true);
+        setErr('');
+        setLoading(true);
+        try {
+            await forgotPassword(email);
+            setSent(true);
+        } catch (err) {
+            setErr(err.message || 'Failed to request reset link');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -43,14 +55,16 @@ const ForgotModal = ({ onClose }) => {
 
                 {sent ? (
                     <div style={{
-                        padding: '1rem', borderRadius: 12, textAlign: 'center',
-                        background: 'rgba(0,229,160,0.1)', border: '1px solid rgba(0,229,160,0.25)',
-                        color: 'var(--success)', fontSize: '0.9rem', lineHeight: 1.6,
+                        padding: '1.25rem', borderRadius: 12, textAlign: 'center',
+                        background: 'rgba(0,229,160,0.08)', border: '1px solid rgba(0,229,160,0.2)',
+                        color: 'var(--success)', fontSize: '0.92rem', lineHeight: 1.6,
                     }}>
-                        ✓ Reset link sent! Check your inbox.
+                        <p style={{ fontWeight: 700, marginBottom: '0.4rem' }}>✓ Reset Link Sent!</p>
+                        <p style={{ opacity: 0.9 }}>Check your registered email address for further instructions.</p>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {err && <div className="alert alert-error animate-fade">{err}</div>}
                         <div>
                             <label className="form-label" style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.6rem' }}>EMAIL ADDRESS</label>
                             <div style={{ position: 'relative' }}>
@@ -60,8 +74,8 @@ const ForgotModal = ({ onClose }) => {
                                     onChange={e => setEmail(e.target.value)} required />
                             </div>
                         </div>
-                        <button type="submit" className="btn-primary" style={{ width: '100%', padding: '0.85rem' }}>
-                            Send Reset Link <ArrowRight size={16} />
+                        <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%', padding: '0.85rem', opacity: loading ? 0.7 : 1 }}>
+                            {loading ? 'Sending link...' : (<>Send Reset Link <ArrowRight size={16} /></>)}
                         </button>
                     </form>
                 )}
@@ -72,32 +86,32 @@ const ForgotModal = ({ onClose }) => {
 
 /* ── Create Account Modal ──────────────────────────────── */
 const CreateAccountModal = ({ onClose, initialRole = 'student' }) => {
-    const { registerUser, findUserByEmail } = useApp();
+    const { registerUser } = useApp();
     const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', role: initialRole });
     const [done, setDone] = useState(false);
     const [err, setErr] = useState('');
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (form.password !== form.confirm) { setErr('Passwords do not match.'); return; }
+        setErr('');
+        
         const normalizedEmail = form.email.trim().toLowerCase();
-        if (findUserByEmail(normalizedEmail)) { setErr('An account with this email already exists.'); return; }
-
         const usernameBase = form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
         const username = usernameBase || normalizedEmail.split('@')[0] || `user${Date.now()}`;
-        const createdUser = registerUser({
-            id: form.role === 'admin' ? `admin-${Date.now()}` : `student-${Date.now()}`,
-            name: form.name.trim(),
-            username,
-            email: normalizedEmail,
-            password: form.password,
-            role: form.role,
-            dept: form.role === 'student' ? 'Computer Science' : undefined,
-            semester: form.role === 'student' ? '6th Semester' : undefined,
-        });
-        void createdUser;
-        setDone(true);
-        setErr('');
+        
+        try {
+            await registerUser({
+                name: form.name.trim(),
+                username,
+                email: normalizedEmail,
+                password: form.password,
+                role: form.role
+            });
+            setDone(true);
+        } catch (err) {
+            setErr(err.message || 'Registration failed. Please try again.');
+        }
     };
 
     return (
@@ -220,27 +234,26 @@ const Login = () => {
     const [showForgot, setShowForgot] = useState(false);
     const [showCreate, setShowCreate] = useState(false);
 
-    const { loginUser, validateUser } = useApp();
+    const { loginUser } = useApp();
 
     useEffect(() => {
         setRole(searchParams.get('role') === 'admin' ? 'admin' : 'student');
     }, [searchParams]);
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-            const authenticatedUser = validateUser(identifier, password, role);
-
-            if (authenticatedUser) {
-                loginUser(authenticatedUser);
+        try {
+            const user = await loginUser({ identifier, password, role });
+            if (user) {
                 navigate(role === 'student' ? '/student' : '/admin');
-            } else {
-                setError(`Invalid ${role === 'admin' ? 'admin' : 'student'} credentials. Please try again.`);
             }
-        }, 650);
+        } catch (err) {
+            setError(err.message || `Invalid ${role === 'admin' ? 'admin' : 'student'} credentials. Please try again.`);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
