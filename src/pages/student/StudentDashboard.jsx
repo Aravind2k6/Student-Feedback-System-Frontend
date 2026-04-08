@@ -120,9 +120,9 @@ const StudentDashboard = () => {
     const currentForms = feedbackTab === 'active' ? activeForms : expiredForms;
 
     const submissionKey = useMemo(() => {
-        if (!selectedCampaign || !selectedCourse || !selectedInstructor) return null;
-        return `fb-${selectedCampaign.id}-${selectedCourse}-${selectedInstructor}`.toLowerCase().replace(/\s+/g, '-');
-    }, [selectedCampaign, selectedCourse, selectedInstructor]);
+        if (!selectedCampaign || !selectedCourse || !selectedInstructor || !student.id) return null;
+        return `fb-${student.id}-${selectedCampaign.id}-${selectedCourse}-${selectedInstructor}`.toLowerCase().replace(/\s+/g, '-');
+    }, [selectedCampaign, selectedCourse, selectedInstructor, student.id]);
 
     const [isAlreadySubmitted, setIsAlreadySubmitted] = useState(false);
 
@@ -197,7 +197,8 @@ const StudentDashboard = () => {
         }
 
         // Find overall rating field to map to primary rating
-        const overallField = dynamicFields.find(f => f.label.toLowerCase().includes('overall'));
+        const ratingFields = (selectedCampaign.fields || []).filter(f => (f.type || f.fieldType || '').toLowerCase().trim() === 'rating');
+        const overallField = (selectedCampaign.fields || []).find(f => f.label.toLowerCase().includes('overall')) || ratingFields[0];
         const overallFid = overallField ? (overallField.id || overallField.fieldId) : null;
         const overallRating = overallFid ? (dynamicRatings[overallFid] || 0) : (rating || 0);
 
@@ -209,8 +210,8 @@ const StudentDashboard = () => {
             rating: overallRating,
             dynamicRatings,
             remarks: dynamicRatings['remarks'] || remarks || ''
-        }).then(success => {
-            if (success) {
+        }).then(result => {
+            if (result.success) {
                 setSubmitted(true);
                 setError('');
                 // Reset after 3 seconds
@@ -223,7 +224,7 @@ const StudentDashboard = () => {
                     setRemarks('');
                 }, 3000);
             } else {
-                setError('Failed to submit feedback. Please check the console for details.');
+                setError(result.error || 'Failed to submit feedback. Please check the console for details.');
             }
         });
     };
