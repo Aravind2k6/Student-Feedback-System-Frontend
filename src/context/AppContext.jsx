@@ -22,21 +22,39 @@ export const AppProvider = ({ children }) => {
     const [stats, setStats] = useState({ totalForms: 0, totalSubmissions: 0, totalUsers: 0 });
 
     const fetchInitialData = useCallback(async () => {
-        try {
-            const [coursesRes, formsRes, publishedRes, statsRes] = await Promise.all([
-                apiFetch('/courses'),
-                apiFetch('/forms'),
-                apiFetch('/forms/published'),
-                apiFetch('/admin/stats')
-            ]);
+        const results = await Promise.allSettled([
+            apiFetch('/courses'),
+            apiFetch('/forms'),
+            apiFetch('/forms/published'),
+            apiFetch('/admin/stats')
+        ]);
 
-            if (coursesRes.ok) setCourses(await coursesRes.json());
-            if (formsRes.ok) setForms(await formsRes.json());
-            if (publishedRes.ok) setPublishedForms(await publishedRes.json());
-            if (statsRes.ok) setStats(await statsRes.json());
-        } catch (err) {
-            console.error('Failed to fetch initial data:', err);
-        }
+        const [coursesResult, formsResult, publishedResult, statsResult] = results;
+
+        const applyResponse = async (result, setter, label) => {
+            if (result.status !== 'fulfilled') {
+                console.error(`Failed to fetch ${label}:`, result.reason);
+                return;
+            }
+
+            if (!result.value.ok) {
+                console.error(`Failed to fetch ${label}. Status:`, result.value.status);
+                return;
+            }
+
+            try {
+                setter(await result.value.json());
+            } catch (err) {
+                console.error(`Failed to parse ${label}:`, err);
+            }
+        };
+
+        await Promise.all([
+            applyResponse(coursesResult, setCourses, 'courses'),
+            applyResponse(formsResult, setForms, 'forms'),
+            applyResponse(publishedResult, setPublishedForms, 'published forms'),
+            applyResponse(statsResult, setStats, 'dashboard stats')
+        ]);
     }, []);
 
     const fetchNotifications = useCallback(async () => {

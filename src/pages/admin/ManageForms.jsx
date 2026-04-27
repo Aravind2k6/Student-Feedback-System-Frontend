@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Bell, Moon, Sun, Plus, LayoutGrid, TableProperties, Pause, BarChart2, Copy, Trash2, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { formatDeadlineDate, isDeadlineExpired } from '../../utils/date';
 
 const TYPE_COLORS = {
     Course: { bg: 'rgba(79,70,229,0.12)', color: '#4338ca', label: 'Course' },
@@ -21,11 +22,11 @@ const ManageForms = () => {
 
     const getStatus = (form) => {
         if (!form.published) return 'Draft';
-        if (form.deadline && new Date(form.deadline) < new Date()) return 'Closed';
+        if (isDeadlineExpired(form.deadline)) return 'Closed';
         return 'Active';
     };
 
-    const isOverdue = (deadline) => deadline && new Date(deadline) < new Date();
+    const isOverdue = (deadline) => isDeadlineExpired(deadline);
 
     const getResponseCount = (form) => feedbacks.filter(f => f.formId === form.id).length;
 
@@ -35,7 +36,7 @@ const ManageForms = () => {
 
     const formatDate = (d) => {
         if (!d) return '—';
-        return d.slice(0, 10);
+        return formatDeadlineDate(d);
     };
 
     const formatCreated = (iso) => {

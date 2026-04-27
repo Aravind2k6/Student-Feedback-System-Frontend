@@ -1,8 +1,5 @@
-const isLocalFrontendHost = typeof window !== 'undefined'
-    && /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
-const DEFAULT_API_BASE_URL = isLocalFrontendHost ? '/api' : '';
-const MISSING_API_BASE_URL_MESSAGE = 'VITE_API_BASE_URL is not set for this deployed frontend. Set it to your backend API URL, for example https://your-backend-domain/api.';
-const NETWORK_ERROR_MESSAGE = 'Cannot reach the backend. Make sure VITE_API_BASE_URL points to your deployed backend API and that the backend is running.';
+const DEFAULT_API_BASE_URL = '/api';
+const NETWORK_ERROR_MESSAGE = 'Cannot reach the backend. Make sure VITE_API_BASE_URL is correct or that your deployment keeps the /api proxy or rewrite configured.';
 
 const normalizeApiBaseUrl = (value) => {
     if (!value) return DEFAULT_API_BASE_URL;
@@ -12,9 +9,6 @@ const normalizeApiBaseUrl = (value) => {
 export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
 export const buildApiUrl = (path) => {
-    if (!API_BASE_URL) {
-        throw new Error(MISSING_API_BASE_URL_MESSAGE);
-    }
     return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 };
 

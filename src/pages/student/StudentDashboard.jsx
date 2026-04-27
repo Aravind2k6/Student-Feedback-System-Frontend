@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ClipboardList, CheckCircle, AlertCircle, Send, Award, Clock, Bell, Trash2, X, Moon, Sun } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { formatDeadlineDate, getDeadlineEndOfDay, isDeadlineActive, isDeadlineExpired } from '../../utils/date';
 
 const RatingWidget = ({ value, onChange, options }) => {
     const optionsArray = Array.isArray(options) ? options : (typeof options === 'string' ? options.split(',').map(s => s.trim()) : []);
@@ -74,9 +75,6 @@ const StudentDashboard = () => {
         setSubmitted(false);
     };
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     const submittedFormIdSet = useMemo(() => new Set(submittedFormIds), [submittedFormIds]);
 
     const isCourseReleased = (form) => {
@@ -91,19 +89,20 @@ const StudentDashboard = () => {
         publishedForms.filter(f =>
             !submittedFormIdSet.has(f.id)
             && isCourseReleased(f)
-            && (!f.deadline || new Date(f.deadline) >= today)
+            && isDeadlineActive(f.deadline)
         ),
         [publishedForms, submittedFormIdSet, releasedCourses, courses]
     );
 
     // Alert logic for deadlines within next 48 hours
     const approachingDeadlines = useMemo(() => {
+        const now = new Date();
         return activeForms.filter(f => {
-            if (!f.deadline) return false;
-            const d = new Date(f.deadline);
-            const diff = d.getTime() - today.getTime();
-            const days = diff / (1000 * 60 * 60 * 24);
-            return days >= 0 && days <= 2;
+            const deadline = getDeadlineEndOfDay(f.deadline);
+            if (!deadline) return false;
+
+            const diff = deadline.getTime() - now.getTime();
+            return diff >= 0 && diff <= 48 * 60 * 60 * 1000;
         });
     }, [activeForms]);
 
@@ -113,7 +112,7 @@ const StudentDashboard = () => {
         publishedForms.filter(f =>
             !submittedFormIdSet.has(f.id)
             && isCourseReleased(f)
-            && (f.deadline && new Date(f.deadline) < today)
+            && isDeadlineExpired(f.deadline)
         ),
         [publishedForms, submittedFormIdSet, releasedCourses, courses]
     );
@@ -350,7 +349,7 @@ const StudentDashboard = () => {
                             The following forms are closing soon:
                             {approachingDeadlines.map((f, i) => (
                                 <strong key={f.id} style={{ color: 'var(--accent-primary)' }}>
-                                    {i > 0 ? ', ' : ' '}{f.title} ({new Date(f.deadline).toLocaleDateString()})
+                                    {i > 0 ? ', ' : ' '}{f.title} ({formatDeadlineDate(f.deadline)})
                                 </strong>
                             ))}
                         </div>
@@ -477,7 +476,7 @@ const StudentDashboard = () => {
                                                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Launched {new Date(form.createdAt).toLocaleDateString()}</div>
                                                         {form.deadline && (
                                                             <div style={{ fontSize: '0.72rem', marginTop: '0.25rem', color: feedbackTab === 'expired' ? '#ef4444' : 'var(--warning)', fontWeight: 600 }}>
-                                                                {feedbackTab === 'expired' ? '⏰ Closed' : '📅 Deadline'}:  {new Date(form.deadline).toLocaleDateString()}
+                                                                {feedbackTab === 'expired' ? '⏰ Closed' : '📅 Deadline'}:  {formatDeadlineDate(form.deadline)}
                                                             </div>
                                                         )}
                                                     </div>

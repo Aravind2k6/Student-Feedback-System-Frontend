@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Bell, Moon, Sun, PlusCircle, ClipboardList, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { isDeadlineActive, isDeadlineExpired } from '../../utils/date';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
@@ -13,8 +14,7 @@ const AdminDashboard = () => {
     // Stat calculations
     const totalForms = forms.length;
     const activeForms = forms.filter(f => {
-        if (!f.deadline) return f.published;
-        return f.published && new Date(f.deadline) >= new Date();
+        return f.published && isDeadlineActive(f.deadline);
     }).length;
     const totalResponses = feedbacks.length;
 
@@ -79,7 +79,7 @@ const AdminDashboard = () => {
 
     const getFormStatus = (form) => {
         if (!form.published) return 'Draft';
-        if (form.deadline && new Date(form.deadline) < new Date()) return 'Expired';
+        if (isDeadlineExpired(form.deadline)) return 'Expired';
         return 'Active';
     };
 
