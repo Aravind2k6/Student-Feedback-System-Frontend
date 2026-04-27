@@ -347,7 +347,9 @@ export const AppProvider = ({ children }) => {
 
     const hasStudentSubmitted = useCallback(async (submissionKey) => {
         try {
-            const res = await apiFetch(`/submissions/check?key=${submissionKey}`);
+            const encodedKey = encodeURIComponent(submissionKey);
+            const studentQuery = currentUser?.id ? `&studentId=${encodeURIComponent(currentUser.id)}` : '';
+            const res = await apiFetch(`/submissions/check?key=${encodedKey}${studentQuery}`);
             if (res.ok) {
                 const data = await res.json();
                 return data.submitted;
@@ -356,7 +358,7 @@ export const AppProvider = ({ children }) => {
             console.error('Failed to check submission:', err);
         }
         return false;
-    }, []);
+    }, [currentUser?.id]);
 
     const markAllRead = useCallback(async () => {
         if (!currentUser?.id) return;

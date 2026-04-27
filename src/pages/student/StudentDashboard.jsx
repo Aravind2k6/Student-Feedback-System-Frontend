@@ -120,9 +120,12 @@ const StudentDashboard = () => {
     const currentForms = feedbackTab === 'active' ? activeForms : expiredForms;
 
     const submissionKey = useMemo(() => {
-        if (!selectedCampaign || !selectedCourse || !selectedInstructor) return null;
-        return `fb-${selectedCampaign.id}-${selectedCourse}-${selectedInstructor}`.toLowerCase().replace(/\s+/g, '-');
-    }, [selectedCampaign, selectedCourse, selectedInstructor]);
+        if (!currentUser?.id || !selectedCampaign || !selectedCourse || !selectedInstructor) return null;
+
+        return `fb-${currentUser.id}-${selectedCampaign.id}-${selectedCourse}-${selectedInstructor}`
+            .toLowerCase()
+            .replace(/\s+/g, '-');
+    }, [currentUser?.id, selectedCampaign, selectedCourse, selectedInstructor]);
 
     const [isAlreadySubmitted, setIsAlreadySubmitted] = useState(false);
 
