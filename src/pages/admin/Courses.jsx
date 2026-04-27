@@ -1,10 +1,19 @@
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, BookOpen, Clock, Users, ChevronRight, BarChart3, Radio } from 'lucide-react';
+import { BookOpen, Clock, BarChart3, Radio } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const Courses = () => {
     const navigate = useNavigate();
-    const { courses, toggleCourseRelease } = useApp();
+    const { courses, toggleCourseRelease, coursesLoading, coursesError, refreshCourses, currentUser } = useApp();
+    const hasRetriedCourses = useRef(false);
+
+    useEffect(() => {
+        if (!hasRetriedCourses.current && currentUser?.role === 'admin' && courses.length === 0 && !coursesLoading) {
+            hasRetriedCourses.current = true;
+            refreshCourses();
+        }
+    }, [currentUser?.role, courses.length, coursesLoading, refreshCourses]);
 
     return (
         <div className="admin-courses-page">
@@ -15,6 +24,24 @@ const Courses = () => {
                 </div>
             </div>
 
+            {coursesError && (
+                <div className="glass-panel" style={{ marginBottom: '1.25rem', padding: '1rem 1.1rem', borderColor: 'rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                    <span style={{ color: '#ef4444', fontWeight: 600 }}>{coursesError}</span>
+                    <button type="button" className="btn-ghost" onClick={refreshCourses} style={{ fontSize: '0.82rem' }}>
+                        Retry
+                    </button>
+                </div>
+            )}
+
+            {coursesLoading && courses.length === 0 ? (
+                <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    Loading courses...
+                </div>
+            ) : courses.length === 0 ? (
+                <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    No courses were returned from the backend.
+                </div>
+            ) : (
             <div className="grid-auto">
                 {courses.map((course, i) => (
                     <div key={i} className="glass-panel course-card" style={{ opacity: course.released ? 1 : 0.7 }}>
@@ -68,6 +95,7 @@ const Courses = () => {
                     </div>
                 ))}
             </div>
+            )}
 
 
             <style dangerouslySetInnerHTML={{

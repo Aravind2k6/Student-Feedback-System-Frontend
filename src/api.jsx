@@ -1,4 +1,6 @@
-const DEFAULT_API_BASE_URL = '/api';
+const DEFAULT_API_BASE_URL = import.meta.env.DEV
+    ? '/api'
+    : 'https://fsad-backend-final.onrender.com/api';
 const NETWORK_ERROR_MESSAGE = 'Cannot reach the backend. Make sure VITE_API_BASE_URL is correct or that your deployment keeps the /api proxy or rewrite configured.';
 
 const normalizeApiBaseUrl = (value) => {

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { ClipboardList, CheckCircle, AlertCircle, Send, Award, Clock, Bell, Trash2, X, Moon, Sun } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatDeadlineDate, getDeadlineEndOfDay, isDeadlineActive, isDeadlineExpired } from '../../utils/date';
@@ -47,6 +47,7 @@ const StudentDashboard = () => {
         publishedForms, submitForm, currentUser, hasStudentSubmitted,
         submittedFormIds,
         courses, releasedCourses, courseInstructors, availableInstructors, availableCourses,
+        coursesLoading, coursesError, refreshCourses,
         feedbacks,
         notifications, markAllRead, clearNotifications,
         darkMode, toggleDarkMode
@@ -63,6 +64,7 @@ const StudentDashboard = () => {
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState('');
     const [showNotifications, setShowNotifications] = useState(false);
+    const hasRetriedCourses = useRef(false);
 
     const resetForm = () => {
         setSelectedCampaign(null);
@@ -141,6 +143,13 @@ const StudentDashboard = () => {
         check();
         return () => { isMounted = false; };
     }, [submissionKey, hasStudentSubmitted]);
+
+    useEffect(() => {
+        if (!hasRetriedCourses.current && currentUser?.role === 'student' && courses.length === 0 && !coursesLoading) {
+            hasRetriedCourses.current = true;
+            refreshCourses();
+        }
+    }, [currentUser?.role, courses.length, coursesLoading, refreshCourses]);
 
     const isCourseLocked = useMemo(() => {
         if (!selectedCampaign) return false;
@@ -520,6 +529,21 @@ const StudentDashboard = () => {
                                 </div>
                             ) : (
                                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem' }}>
+                                    {coursesError && (
+                                        <div style={{ padding: '0.9rem 1rem', borderRadius: 12, border: '1px solid rgba(239,68,68,0.18)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{coursesError}</span>
+                                            <button type="button" className="btn-ghost" onClick={refreshCourses} style={{ fontSize: '0.8rem' }}>
+                                                Retry
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {!coursesLoading && releasedCourses.length === 0 && (
+                                        <div style={{ padding: '0.9rem 1rem', borderRadius: 12, border: '1px solid rgba(245,158,11,0.18)', background: 'rgba(245,158,11,0.06)', color: 'var(--warning)' }}>
+                                            No released courses are available right now, so the course and instructor selectors will stay empty until courses are loaded or released.
+                                        </div>
+                                    )}
+
                                     <div className="grid-2" style={{ gap: '1.1rem' }}>
                                         <div>
                                             <label className="form-label">Select Course</label>
@@ -528,16 +552,26 @@ const StudentDashboard = () => {
                                                     <CheckCircle size={16} /> {selectedCourse}
                                                 </div>
                                             ) : (
-                                                <select className="form-input" value={selectedCourse} onChange={e => { setSelectedCourse(e.target.value); setSelectedInstructor(''); }}>
-                                                    <option value="">Choose Course…</option>
+                                                <select
+                                                    className="form-input"
+                                                    value={selectedCourse}
+                                                    disabled={coursesLoading || releasedCourses.length === 0}
+                                                    onChange={e => { setSelectedCourse(e.target.value); setSelectedInstructor(''); }}
+                                                >
+                                                    <option value="">{coursesLoading ? 'Loading courses...' : 'Choose Course...'}</option>
                                                     {releasedCourses.map(c => <option key={c} value={c}>{c}</option>)}
                                                 </select>
                                             )}
                                         </div>
                                         <div>
                                             <label className="form-label">Select Instructor</label>
-                                            <select className="form-input" value={selectedInstructor} onChange={e => setSelectedInstructor(e.target.value)}>
-                                                <option value="">Choose Instructor…</option>
+                                            <select
+                                                className="form-input"
+                                                value={selectedInstructor}
+                                                disabled={coursesLoading || !selectedCourse || instructors.length === 0}
+                                                onChange={e => setSelectedInstructor(e.target.value)}
+                                            >
+                                                <option value="">{coursesLoading ? 'Loading instructors...' : 'Choose Instructor...'}</option>
                                                 {instructors.map(ins => <option key={ins} value={ins}>{ins}</option>)}
                                             </select>
                                         </div>

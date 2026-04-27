@@ -8,6 +8,8 @@ export const AppProvider = ({ children }) => {
     const [publishedForms, setPublishedForms] = useState([]);
     const [submittedFormIds, setSubmittedFormIds] = useState([]);
     const [courses, setCourses] = useState([]);
+    const [coursesLoading, setCoursesLoading] = useState(true);
+    const [coursesError, setCoursesError] = useState('');
     const [currentUser, setCurrentUser] = useState(() => {
         const stored = localStorage.getItem('edu_current_user');
         return stored ? JSON.parse(stored) : null;
@@ -21,15 +23,38 @@ export const AppProvider = ({ children }) => {
     const [submissionCounts, setSubmissionCounts] = useState({});
     const [stats, setStats] = useState({ totalForms: 0, totalSubmissions: 0, totalUsers: 0 });
 
+    const refreshCourses = useCallback(async () => {
+        setCoursesLoading(true);
+        setCoursesError('');
+
+        try {
+            const res = await apiFetch('/courses');
+            if (!res.ok) {
+                throw new Error(await readErrorMessage(res, 'Failed to fetch courses'));
+            }
+
+            const data = await res.json();
+            setCourses(Array.isArray(data) ? data : []);
+            return true;
+        } catch (err) {
+            const message = err.message || 'Failed to fetch courses';
+            setCoursesError(message);
+            console.error('Failed to fetch courses:', err);
+            return false;
+        } finally {
+            setCoursesLoading(false);
+        }
+    }, []);
+
     const fetchInitialData = useCallback(async () => {
         const results = await Promise.allSettled([
-            apiFetch('/courses'),
+            refreshCourses(),
             apiFetch('/forms'),
             apiFetch('/forms/published'),
             apiFetch('/admin/stats')
         ]);
 
-        const [coursesResult, formsResult, publishedResult, statsResult] = results;
+        const [, formsResult, publishedResult, statsResult] = results;
 
         const applyResponse = async (result, setter, label) => {
             if (result.status !== 'fulfilled') {
@@ -50,12 +75,11 @@ export const AppProvider = ({ children }) => {
         };
 
         await Promise.all([
-            applyResponse(coursesResult, setCourses, 'courses'),
             applyResponse(formsResult, setForms, 'forms'),
             applyResponse(publishedResult, setPublishedForms, 'published forms'),
             applyResponse(statsResult, setStats, 'dashboard stats')
         ]);
-    }, []);
+    }, [refreshCourses]);
 
     const fetchNotifications = useCallback(async () => {
         if (!currentUser?.id) return;
@@ -435,6 +459,9 @@ export const AppProvider = ({ children }) => {
                 publishedForms,
                 submittedFormIds,
                 courses,
+                coursesLoading,
+                coursesError,
+                refreshCourses,
                 releasedCourses,
                 toggleCourseRelease,
                 availableCourses,

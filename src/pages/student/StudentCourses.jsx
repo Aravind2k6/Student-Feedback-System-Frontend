@@ -1,11 +1,18 @@
-import React from 'react';
-import { BookOpen, GraduationCap } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { BookOpen } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const StudentCourses = () => {
-    const { courses } = useApp();
-
+    const { courses, coursesLoading, coursesError, refreshCourses, currentUser } = useApp();
     const displayCourses = courses || [];
+    const hasRetriedCourses = useRef(false);
+
+    useEffect(() => {
+        if (!hasRetriedCourses.current && currentUser?.role === 'student' && displayCourses.length === 0 && !coursesLoading) {
+            hasRetriedCourses.current = true;
+            refreshCourses();
+        }
+    }, [currentUser?.role, displayCourses.length, coursesLoading, refreshCourses]);
 
     return (
         <div>
@@ -19,7 +26,22 @@ const StudentCourses = () => {
             </div>
 
             <div className="animate-fade-in animate-delay-2" style={{ maxWidth: '1000px' }}>
+                {coursesError && (
+                    <div style={{ marginBottom: '1rem', padding: '1rem 1.1rem', borderRadius: 12, border: '1px solid rgba(239,68,68,0.18)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{coursesError}</span>
+                        <button type="button" className="btn-ghost" onClick={refreshCourses} style={{ fontSize: '0.82rem' }}>
+                            Retry
+                        </button>
+                    </div>
+                )}
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                    {coursesLoading && displayCourses.length === 0 && (
+                        <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', border: '1px dashed var(--glass-border)', borderRadius: 12 }}>
+                            Loading registered courses...
+                        </div>
+                    )}
+
                     {displayCourses.map((course, idx) => {
                         const courseCode = course?.code || 'Unknown';
                         const courseName = course?.courseName || 'Unnamed Course';
@@ -63,7 +85,7 @@ const StudentCourses = () => {
                         );
                     })}
                     
-                    {displayCourses.length === 0 && (
+                    {!coursesLoading && displayCourses.length === 0 && (
                         <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', border: '1px dashed var(--glass-border)', borderRadius: 12 }}>
                             You are not registered for any courses currently.
                         </div>
