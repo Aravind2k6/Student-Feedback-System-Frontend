@@ -79,12 +79,20 @@ const StudentDashboard = () => {
 
     const submittedFormIdSet = useMemo(() => new Set(submittedFormIds), [submittedFormIds]);
 
+    const normalizeCourseMatch = (value) => (value || '').trim().toLowerCase();
+
     const isCourseReleased = (form) => {
         if (form.type !== 'Course') return true;
-        const targetCourse = form.course || 
-                            courses.find(c => c.name === form.target || c.courseName === form.target)?.name;
-        if (!targetCourse) return true;
-        return releasedCourses.includes(targetCourse);
+        const target = normalizeCourseMatch(form.course || form.target);
+        if (!target) return true;
+
+        return courses.some((course) => {
+            if (!course.released) return false;
+            return [course.name, course.code, course.courseName]
+                .filter(Boolean)
+                .map(normalizeCourseMatch)
+                .includes(target);
+        });
     };
 
     const activeForms = useMemo(() =>

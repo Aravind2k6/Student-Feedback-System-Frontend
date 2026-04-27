@@ -253,7 +253,7 @@ export const AppProvider = ({ children }) => {
     }, []);
 
     const createForm = useCallback(async (formData) => {
-        const normalizedCourse = (formData.course || '').trim();
+        const normalizedCourse = (formData.course || formData.courseCode || '').trim();
         const normalizedTarget = (formData.target || normalizedCourse || 'All Students').trim();
         const payload = {
             title: (formData.title || '').trim(),
